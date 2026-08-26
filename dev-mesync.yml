@@ -1,0 +1,7 @@
+- insert:
+  - id: mesync
+    name: 'file:///D:/WorkSpace/dsh-mesync/lib/index.js'
+    config:
+      autoExtract: true
+      dbPath: 'resonance.db'
+      tastePath: 'tastes/'
