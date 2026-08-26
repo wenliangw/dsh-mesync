@@ -57,6 +57,14 @@ export function apply(ctx: Context, config: Config) {
   // 初始化数据库
   initDB(projectRoot, config.dbPath)
 
+  // 首次加载时扫描一次项目现状（生成 reality 快照）
+  // 后续在 agent/session-start 也会刷新
+  try {
+    scanProjectReality(projectRoot)
+  } catch (err) {
+    console.warn('[mesync] Initial project reality scan failed:', err)
+  }
+
   // 加载手动品味声明
   const tastePath = path.isAbsolute(config.tastePath)
     ? config.tastePath
@@ -66,8 +74,15 @@ export function apply(ctx: Context, config: Config) {
   // 注册工具
   registerTools(ctx)
 
-  // ---- 集成点 1: agent/session-start — 注入同频记忆上下文 ----
+  // ---- 集成点 1: agent/session-start — 刷新现状 + 注入同频记忆上下文 ----
   ctx.on('agent/session-start', () => {
+    // 每次会话开始时刷新项目现状快照
+    try {
+      scanProjectReality(projectRoot)
+    } catch (err) {
+      console.warn('[mesync] Reality refresh failed:', err)
+    }
+
     const context = buildResonanceContext({
       maxDecisions: config.maxContextDecisions,
       includeReality: true,
