@@ -1,5 +1,5 @@
 // DB — SQLite 操作层
-// 管理 .dsh-resonance/resonance.db 的初始化、迁移和 CRUD
+// 管理 .mesync/resonance.db 的初始化、迁移和 CRUD
 
 import Database from 'better-sqlite3'
 import * as path from 'node:path'
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS meta (
 export function initDB(projectRoot: string, dbPath?: string): Database.Database {
   if (db) return db
 
-  const resolvedPath = dbPath ?? path.join(projectRoot, '.dsh-resonance', 'resonance.db')
+  const resolvedPath = dbPath ?? path.join(projectRoot, '.mesync', 'resonance.db')
   const dir = path.dirname(resolvedPath)
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })
