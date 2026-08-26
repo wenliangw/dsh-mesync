@@ -49,24 +49,37 @@ Mesync 注册 4 个 Agent 工具：
 
 ```yaml
 config:
-  dbPath: '.dsh-resonance/resonance.db'  # 数据库路径
-  extractModel: ''                        # 提取模型（空 = 复用当前）
-  autoExtract: true                       # 是否自动提取
-  tasteManualPath: '.dsh-resonance/taste.manual.md'  # 品味声明文件
-  maxContextDecisions: 5                  # 注入上下文最大决策数
+  dbPath: '.mesync/resonance.db'  # 数据库路径
+  extractModel: ''                # 提取模型（空 = 复用当前）
+  autoExtract: true               # 是否自动提取
+  tastePath: '.mesync/tastes/'    # 品味声明目录（支持批量加载）
+  maxContextDecisions: 5          # 注入上下文最大决策数
 ```
 
 ### 手动品味声明
 
-在项目根目录创建 `.dsh-resonance/taste.manual.md`：
+在项目根目录创建 `.mesync/tastes/` 目录，放入 `.md` 文件（支持目录批量加载）：
+
+```
+.mesync/tastes/
+├── code-style.md
+├── architecture.md
+└── patterns.md
+```
+
+文件格式（每行一条品味信号）：
 
 ```markdown
-# Project Taste
+# 代码风格
 
-- prefer-explicit-over-implicit: 类型系统充分利用，不用 any/dyn 除非必要
-- avoid-premature-generalization: 先做具体实现，验证后再抽象
-- avoid-patch-fixes: 修复必须按架构重构，不允许补丁式绕过
+prefer-explicit-over-implicit: 类型系统充分利用，不用 any/dyn 除非必要
+avoid-premature-generalization: 先做具体实现，验证后再抽象
+
+# 架构偏好
+favor-composition-over-inheritance: 优先组合而非继承
 ```
+
+也支持单文件 `.mesync/tastes.md`。
 
 ## 成本说明
 
@@ -80,7 +93,7 @@ Mesync 在检测到决策信号时会额外调用 LLM 提取记忆。触发条�
 
 ## 存储
 
-所有数据存储在项目根目录 `.dsh-resonance/resonance.db`（SQLite），对用户透明。
+所有数据存储在项目根目录 `.mesync/resonance.db`（SQLite），品味声明在 `.mesync/tastes/`，对用户透明。
 
 ## License
 

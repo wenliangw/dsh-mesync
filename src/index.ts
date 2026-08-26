@@ -25,23 +25,23 @@ import { createDecision } from './decisions.js'
 export const name = 'mesync'
 
 export interface Config {
-  /** 数据库路径，默认 '.dsh-resonance/resonance.db' */
+  /** 数据库路径，默认 '.mesync/resonance.db' */
   dbPath: string
   /** 提取用的模型，为空则复用当前模型 */
   extractModel: string
   /** 是否自动提取决策，默认 true */
   autoExtract: boolean
-  /** 品味手动声明文件路径，默认 '.dsh-resonance/taste.manual.md' */
-  tasteManualPath: string
+  /** 品味手动声明路径，默认 '.mesync/tastes/'（支持目录批量加载） */
+  tastePath: string
   /** 注入上下文时最多带几条决策，默认 5 */
   maxContextDecisions: number
 }
 
 export const Config: Schema<Config> = Schema.object({
-  dbPath: Schema.string().default('.dsh-resonance/resonance.db'),
+  dbPath: Schema.string().default('.mesync/resonance.db'),
   extractModel: Schema.string().default(''),
   autoExtract: Schema.boolean().default(true),
-  tasteManualPath: Schema.string().default('.dsh-resonance/taste.manual.md'),
+  tastePath: Schema.string().default('.mesync/tastes/'),
   maxContextDecisions: Schema.number().default(5),
 })
 
@@ -58,9 +58,9 @@ export function apply(ctx: Context, config: Config) {
 
   // 加载手动品味声明
   const path = require('node:path')
-  const tastePath = config.tasteManualPath.startsWith('/')
-    ? config.tasteManualPath
-    : path.join(projectRoot, config.tasteManualPath)
+  const tastePath = config.tastePath.startsWith('/')
+    ? config.tastePath
+    : path.join(projectRoot, config.tastePath)
   loadManualTaste(tastePath)
 
   // 注册工具

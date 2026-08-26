@@ -6,6 +6,7 @@
     - id: mesync
       name: '/absolute/path/to/mesync/src/index.ts'
       config:
-        dbPath: '.dsh-resonance/resonance.db'
+        dbPath: '.mesync/resonance.db'
         autoExtract: true
         maxContextDecisions: 5
+        tastePath: '.mesync/tastes/'
