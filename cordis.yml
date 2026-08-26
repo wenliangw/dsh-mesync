@@ -1,0 +1,11 @@
+# Cordis patch file for mesync development
+# Load with: pnpm dsh web --patch ./cordis.yml
+# (Run from dsh repo root, adjust path below)
+
+- insert:
+    - id: mesync
+      name: '/absolute/path/to/mesync/src/index.ts'
+      config:
+        dbPath: '.dsh-resonance/resonance.db'
+        autoExtract: true
+        maxContextDecisions: 5

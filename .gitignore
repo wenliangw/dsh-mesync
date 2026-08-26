@@ -1,0 +1,5 @@
+node_modules/
+lib/
+*.db
+*.db-journal
+.dsh-resonance/
