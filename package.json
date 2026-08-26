@@ -25,7 +25,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b && node scripts/copy-assets.mjs",
+    "build": "npm run clean && tsc -b && node scripts/copy-assets.mjs",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
