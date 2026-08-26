@@ -85,6 +85,9 @@ export interface ModuleInfo {
 
 // ---- 数据库管理 ----
 
+// 多实例缓存：按 projectRoot 缓存 db 实例（项目级记忆需要每个 workspace 独立）。
+// 避免多 workspace 切换时互相污染。
+const dbCache = new Map<string, Database.Database>()
 let db: Database.Database | null = null
 
 const SCHEMA_SQL = `
@@ -158,7 +161,11 @@ CREATE TABLE IF NOT EXISTS meta (
 `
 
 export function initDB(projectRoot: string, dbPath?: string): Database.Database {
-  if (db) return db
+  const existing = dbCache.get(projectRoot)
+  if (existing) {
+    db = existing
+    return existing
+  }
 
   const resolvedPath = dbPath ?? path.join(projectRoot, '.mesync', 'resonance.db')
   const dir = path.dirname(resolvedPath)
@@ -166,21 +173,23 @@ export function initDB(projectRoot: string, dbPath?: string): Database.Database 
     fs.mkdirSync(dir, { recursive: true })
   }
 
-  db = new Database(resolvedPath)
-  db.pragma('journal_mode = WAL')
-  db.pragma('foreign_keys = ON')
+  const newDB = new Database(resolvedPath)
+  newDB.pragma('journal_mode = WAL')
+  newDB.pragma('foreign_keys = ON')
 
-  db.exec(SCHEMA_SQL)
+  newDB.exec(SCHEMA_SQL)
 
   // 初始化 meta
   const now = new Date().toISOString()
-  const initMeta = db.prepare(
+  const initMeta = newDB.prepare(
     'INSERT OR IGNORE INTO meta (key, value, updated_at) VALUES (?, ?, ?)'
   )
   initMeta.run('schema_version', '1', now)
   initMeta.run('project_name', '', now)
 
-  return db
+  dbCache.set(projectRoot, newDB)
+  db = newDB
+  return newDB
 }
 
 export function getDB(): Database.Database {
@@ -189,10 +198,11 @@ export function getDB(): Database.Database {
 }
 
 export function closeDB(): void {
-  if (db) {
-    db.close()
-    db = null
+  for (const d of dbCache.values()) {
+    d.close()
   }
+  dbCache.clear()
+  db = null
 }
 
 // ---- Decisions CRUD ----

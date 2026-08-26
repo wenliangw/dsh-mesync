@@ -1,5 +1,9 @@
 // Reality — 项目现状管理
-// 自动从项目文件提取 tech stack、模块结构、架构信息
+// 自动从项目文件提取 tech stack、模块结构、架构信息。
+//
+// 分两层：
+// - 纯扫描函数（detectTechStack/detectModules/detectLanguage 等）：无副作用，可单测
+// - scanProjectReality：调用扫描 + 持久化快照（依赖 db）
 
 import * as fs from 'node:fs'
 import * as path from 'node:path'
@@ -11,12 +15,25 @@ import {
 import type { ModuleInfo, RealitySnapshot } from './db.js'
 
 /**
- * 从项目根目录扫描并生成最新的项目现状快照
+ * 扫描项目文件系统，产出「技术栈 + 模块结构」的纯数据（不落库）。
+ * 供单测和 scanProjectReality 复用。
+ */
+export function scanProject(projectRoot: string): {
+  techStack: Record<string, unknown>
+  modules: ModuleInfo[]
+} {
+  return {
+    techStack: detectTechStack(projectRoot),
+    modules: detectModules(projectRoot),
+  }
+}
+
+/**
+ * 从项目根目录扫描并生成最新的项目现状快照（含持久化）。
  */
 export function scanProjectReality(projectRoot: string, sessionId?: string): RealitySnapshot | null {
   try {
-    const techStack = detectTechStack(projectRoot)
-    const modules = detectModules(projectRoot)
+    const { techStack, modules } = scanProject(projectRoot)
     const previous = getLatestReality()
 
     const snapshot: RealitySnapshot = {
@@ -42,9 +59,9 @@ export function scanProjectReality(projectRoot: string, sessionId?: string): Rea
 }
 
 /**
- * 检测技术栈
+ * 检测技术栈（纯函数）
  */
-function detectTechStack(projectRoot: string): Record<string, unknown> {
+export function detectTechStack(projectRoot: string): Record<string, unknown> {
   const stack: Record<string, unknown> = {}
 
   // Node.js
@@ -94,9 +111,9 @@ function detectTechStack(projectRoot: string): Record<string, unknown> {
 }
 
 /**
- * 检测模块结构
+ * 检测模块结构（纯函数）
  */
-function detectModules(projectRoot: string): ModuleInfo[] {
+export function detectModules(projectRoot: string): ModuleInfo[] {
   const modules: ModuleInfo[] = []
   const srcDir = path.join(projectRoot, 'src')
 

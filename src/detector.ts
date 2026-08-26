@@ -92,6 +92,8 @@ export function detectExplicitChoice(text: string): boolean {
     /[应应]该.*[还还还是]/,
     /哪种.*方案/,
     /你[决抉]定/,
+    /你来[决抉]定/,
+    /[决抉]定用/,
   ]
   return choicePatterns.some(p => p.test(text))
 }
