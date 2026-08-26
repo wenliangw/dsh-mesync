@@ -1,8 +1,8 @@
 // Decisions — 决策管理
 // 提供决策的写入、查询、因果链构建等高层接口
 
-import { insertDecision, getDecisionChain, searchDecisions, getRecentDecisions } from './db.js'
-import type { DecisionNode, Alternative, TasteSignalRef } from './db.js'
+import { insertDecision, getDecisionChain, searchDecisions, getRecentDecisions } from '../db/index.js'
+import type { DecisionNode, Alternative, TasteSignalRef } from '../db/index.js'
 
 /**
  * 创建决策节点

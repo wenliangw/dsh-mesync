@@ -1,7 +1,7 @@
 // Taste 品味文件解析测试
 
 import { describe, it, expect } from 'vitest'
-import { parseManualTasteContent } from './taste.js'
+import { parseManualTasteContent } from '../tastes/taste.js'
 
 describe('parseManualTasteContent', () => {
   it('解析 bullet 格式', () => {

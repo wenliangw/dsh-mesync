@@ -10,8 +10,8 @@ import {
   updateManualTaste,
   getManualTaste,
   getAntiPatterns,
-} from './db.js'
-import type { TasteSignal, ParsedSignal, AntiPattern } from './db.js'
+} from '../db/index.js'
+import type { TasteSignal, ParsedSignal, AntiPattern } from '../db/index.js'
 
 /**
  * 从决策节点更新品味信号

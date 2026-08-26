@@ -1,7 +1,7 @@
 // Extractor — Agent 驱动的决策提取
 // 在检测到决策信号后，调用 LLM 回顾对话，提取决策节点、品味信号和项目现状变更
 
-import type { DecisionNode, Alternative, TasteSignalRef } from './db.js'
+import type { DecisionNode, Alternative, TasteSignalRef } from '../db/index.js'
 import type { DecisionSignal, TurnSummary } from './detector.js'
 
 /**
