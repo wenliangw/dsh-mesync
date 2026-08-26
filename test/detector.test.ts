@@ -6,8 +6,8 @@ import {
   detectExplicitChoice,
   detectRememberKeyword,
   estimateRepeatCount,
-} from '../decisions/detector.js'
-import type { TurnSummary } from '../decisions/detector.js'
+} from '@/decisions/detector.js'
+import type { TurnSummary } from '@/decisions/detector.js'
 
 function makeTurn(overrides: Partial<TurnSummary> = {}): TurnSummary {
   return {

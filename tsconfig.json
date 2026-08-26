@@ -12,8 +12,12 @@
     "sourceMap": true,
     "outDir": "lib",
     "declarationDir": "lib/types",
-    "rootDir": "src"
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src"],
-  "exclude": ["src/client", "**/*.test.ts"]
+  "exclude": ["src/client", "test"]
 }

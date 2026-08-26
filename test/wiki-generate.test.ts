@@ -4,7 +4,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import { collectProjectMaterial } from '../wiki/generate.js'
+import { collectProjectMaterial } from '@/wiki/generate.js'
 
 function makeTempProject(files: Record<string, string>): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mesync-wiki-test-'))
