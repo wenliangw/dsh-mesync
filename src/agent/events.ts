@@ -10,6 +10,7 @@ import { buildResonanceContext, buildTurnContext } from './context.js'
 import { setCurrentProjectRoot } from './tools.js'
 import { detectDecisionSignal } from '../decisions/detector.js'
 import type { TurnSummary } from '../decisions/detector.js'
+import type { Config } from '../config/index.js'
 
 /** 从 agent.session.header.cwd 解析 workspace 根目录 */
 function resolveProjectRoot(agent: any): string | null {
@@ -23,7 +24,7 @@ function resolveProjectRoot(agent: any): string | null {
 }
 
 /** 注册所有事件监听 */
-export function registerEvents(ctx: Context, config: any): void {
+export function registerEvents(ctx: Context, config: Config): void {
   // ---- session-start：定位 workspace + wiki 同步 + 注入上下文 ----
   ctx.on('agent/session-start', async (payload: { agent: any; source: unknown }) => {
     const projectRoot = resolveProjectRoot(payload.agent)
