@@ -7,6 +7,7 @@
 // 3. agent/turn-stopping — 检测决策信号，触发 Agent 提取
 // 4. 工具注册 — recall / remember / taste_add / reality
 
+import * as path from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 
@@ -57,8 +58,7 @@ export function apply(ctx: Context, config: Config) {
   initDB(projectRoot, config.dbPath)
 
   // 加载手动品味声明
-  const path = require('node:path')
-  const tastePath = config.tastePath.startsWith('/')
+  const tastePath = path.isAbsolute(config.tastePath)
     ? config.tastePath
     : path.join(projectRoot, config.tastePath)
   loadManualTaste(tastePath)
