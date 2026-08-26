@@ -1,97 +1,62 @@
-// wiki/rules — 默认 rules 模板（约束 LLM 生成 wiki 的规则）
-// 这是「每次 mesync 主动调 LLM 时带入」的规则文本。
-// 用户可修改 .mesync/rules/_sync_wiki.rule.md 自定义。
+// wiki/rules — 默认 rules 模板管理
+// 模板作为独立资源文件放在 src/templates/。
+// mesync 初始化时：若项目 .mesync/rules/_sync_wiki.rule.md 不存在，则输出默认模板；
+// 若用户已修改，则尊重用户版本（不覆盖）。
+
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import * as url from 'node:url'
+import { SYNC_RULE_FILE } from './structure.js'
+
+/** 默认模板在 src/templates/ 下的文件名 */
+const TEMPLATE_FILE = '_sync_wiki.rule.md'
 
 /**
- * 默认的 wiki 同步规则（内嵌模板）。
- * 当 .mesync/rules/_sync_wiki.rule.md 不存在时，用这份默认规则。
+ * 读取内置默认模板内容（src/templates/_sync_wiki.rule.md）。
  */
-export const DEFAULT_SYNC_RULES = `# mesync Wiki 同步规则
-
-## mesync 是什么
-
-mesync 是一个项目级记忆系统，运行在 DeepSeek Harness (dsh) 中。它的核心职责是：
-**自动维护项目的认知文档（wiki）**，让后续的 Agent 在接手项目时，无需用户重新解释，
-就能快速理解项目的架构、业务、模块和约束。
-
-你（LLM）是 mesync 的项目认知维护者。当你被调用时，你的任务是分析项目并
-生成/更新符合本规则的 wiki 文档。
-
-## Wiki 目录结构
-
-wiki 文档存放在项目的 .mesync/ 目录下：
-
-\`\`\`
-.mesync/
-├── overview.md          # 项目速览：项目简介 + 各模块索引（入口文档）
-├── wiki/
-│   ├── architecture.md  # 架构：分层、模块划分、技术选型、设计模式
-│   ├── business.md      # 业务：核心业务概念、业务模块、业务规则
-│   ├── modules/         # 模块细节：每个模块的功能逻辑、调用关系
-│   │   └── <module>.md
-│   └── constraints.md   # 约束：环境约束、性能约束、安全约束
-└── rules/
-    └── _sync_wiki.rule.md  # 本规则文件
-\`\`\`
-
-## 生成规范
-
-### overview.md（入口）
-- **项目简介**：一段话说明项目是什么、解决什么问题
-- **技术栈**：语言、框架、构建工具、数据库等
-- **模块索引**：列出各模块，每个模块一行简介 + 指向 wiki/modules/<module>.md 的链接
-- 保持简洁，是「速览」，不是「详述」。详细内容放 wiki/ 下对应文档。
-
-### wiki/architecture.md
-- 架构分层（如表现层/业务层/数据层）
-- 模块之间的依赖关系
-- 关键技术选型及理由
-- 设计模式的使用
-
-### wiki/business.md
-- 核心业务概念
-- 业务模块划分
-- 关键业务规则
-
-### wiki/modules/<module>.md
-- 该模块的职责
-- 功能逻辑（怎么实现的）
-- 调用关系（依赖谁、被谁依赖）
-- 对外接口
-
-### wiki/constraints.md
-- 环境约束（如内存、平台）
-- 性能约束
-- 安全约束
-- 其他约定
-
-## 更新规范
-
-- **增量更新**：只更新「发生变化」的部分，不重写整个 wiki
-- **首次生成**：如果 wiki 为空，做一次全量分析，生成 overview.md + 各分类文档
-- **变更判断**：根据 git diff 判断变更性质：
-  - 架构变更 → 更新 architecture.md 和 overview.md 的索引
-  - 新模块 → 新增 wiki/modules/<module>.md + 更新 overview.md 索引
-  - 功能细节变更 → 更新对应 module 文档
-  - 纯重构（不改变对外行为）→ 更新对应 module 文档的实现描述
-- **语言**：文档使用中文撰写
-- **格式**：使用 Markdown，结构清晰，标题层级合理
-`
+function readTemplate(): string {
+  // 用 import.meta.url 定位到 src/templates/（源码时 .ts，构建后 .js，模板文件是 .md 不受影响）
+  const here = path.dirname(url.fileURLToPath(import.meta.url))
+  const templatePath = path.join(here, '..', 'templates', TEMPLATE_FILE)
+  try {
+    return fs.readFileSync(templatePath, 'utf-8')
+  } catch {
+    // 极端情况模板文件缺失，返回空（调用方会兜底）
+    return ''
+  }
+}
 
 /**
- * 读取 rules 文件。若用户自定义了 .mesync/rules/_sync_wiki.rule.md，用之；
- * 否则返回默认模板。
+ * 首次初始化：若项目里没有 rules 文件，则把默认模板输出到项目。
+ * 已在则不动（尊重用户版本）。
+ */
+export function ensureRulesFile(projectRoot: string): void {
+  const target = path.join(projectRoot, SYNC_RULE_FILE)
+  if (fs.existsSync(target)) return
+
+  const template = readTemplate()
+  if (!template) return
+
+  const dir = path.dirname(target)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+  fs.writeFileSync(target, template, 'utf-8')
+}
+
+/**
+ * 读取 rules 文件内容。
+ * 优先读项目里的（可能已被用户修改），不存在则返回内置模板。
  */
 export function loadSyncRules(projectRoot: string): string {
+  const target = path.join(projectRoot, SYNC_RULE_FILE)
   try {
-    const fs = require('node:fs')
-    const path = require('node:path')
-    const customPath = path.join(projectRoot, '.mesync', 'rules', '_sync_wiki.rule.md')
-    if (fs.existsSync(customPath)) {
-      return fs.readFileSync(customPath, 'utf-8')
+    if (fs.existsSync(target)) {
+      const content = fs.readFileSync(target, 'utf-8')
+      if (content.trim()) return content
     }
   } catch {
-    // 读取失败用默认模板
+    // 读取失败，走模板兜底
   }
-  return DEFAULT_SYNC_RULES
+  return readTemplate()
 }

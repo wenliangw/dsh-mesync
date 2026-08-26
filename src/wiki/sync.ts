@@ -6,8 +6,8 @@ import * as path from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { hasWikiData, upsertWikiPage } from '../db/index.js'
 import { collectProjectMaterial } from './generate.js'
-import { loadSyncRules, DEFAULT_SYNC_RULES } from './rules.js'
-import { OVERVIEW_PATH, WIKI_DIR } from './structure.js'
+import { ensureRulesFile, loadSyncRules } from './rules.js'
+import { OVERVIEW_PATH } from './structure.js'
 import { callLlm } from '../agent/llm.js'
 
 /**
@@ -46,6 +46,9 @@ ${material}
  */
 export async function ensureWikiSynced(ctx: Context, projectRoot: string, agent: any): Promise<boolean> {
   try {
+    // 首次确保 rules 文件存在（不存在则输出默认模板，存在则尊重用户版本）
+    ensureRulesFile(projectRoot)
+
     // 已有 wiki 数据则复用，不重复全量分析
     if (hasWikiData()) {
       return false
@@ -102,5 +105,3 @@ function resolveModel(agent: any): { provider: string; model: string } {
     model: agent?.options?.model ?? '',
   }
 }
-
-export { DEFAULT_SYNC_RULES, WIKI_DIR }
