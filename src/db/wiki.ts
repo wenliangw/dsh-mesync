@@ -34,3 +34,9 @@ export function hasWikiData(): boolean {
   const row = d.prepare('SELECT COUNT(*) as c FROM wiki_pages').get() as any
   return row.c > 0
 }
+
+/** 删除一个 wiki 文档的索引 */
+export function deleteWikiPage(path: string): void {
+  const d = getDB()
+  d.prepare('DELETE FROM wiki_pages WHERE path = ?').run(path)
+}

@@ -24,10 +24,18 @@ export async function callLlm(ctx: Context, options: LlmCallOptions): Promise<st
       return null
     }
 
+    // 关键：dsh 的 GenerateOptions.messages 是 Message[]，content 是 ContentBlock[]
+    // （[{ type: 'text', text }]），不是纯字符串。传字符串会导致 adapter 拿到
+    // 无法解析的 content，LLM 返回空。这里做一次转换。
+    const messages = options.messages.map(m => ({
+      role: m.role,
+      content: [{ type: 'text', text: m.content }],
+    }))
+
     const stream = llm.stream({
       provider: options.provider,
       model: options.model,
-      messages: options.messages,
+      messages,
       system: options.system,
       maxTokens: options.maxTokens,
     })
@@ -50,8 +58,9 @@ export async function callLlm(ctx: Context, options: LlmCallOptions): Promise<st
  * 从 agent 获取当前使用的 provider/model。
  * agent.options = { provider?, model? }，缺省时用兜底值。
  */
-export function resolveAgentModel(agent: any): { provider: string; model: string } {
-  const provider = agent?.options?.provider ?? 'deepseek'
-  const model = agent?.options?.model ?? ''
+export function resolveAgentModel(agent: any): { provider: string; model: string } | null {
+  const provider = agent?.options?.provider
+  const model = agent?.options?.model
+  if (!provider || !model) return null
   return { provider, model }
 }

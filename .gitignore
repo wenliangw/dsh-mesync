@@ -4,3 +4,4 @@ lib/
 *.db-journal
 .mesync/
 tsconfig.tsbuildinfo
+dev-mesync.yml
