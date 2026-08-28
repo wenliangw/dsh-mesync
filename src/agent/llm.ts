@@ -55,10 +55,21 @@ export async function callLlm(ctx: Context, options: LlmCallOptions): Promise<st
 }
 
 /**
- * 从 agent 获取当前使用的 provider/model。
- * agent.options = { provider?, model? }，缺省时从 session 的 request header config 读取。
+ * 从 agent 获取当前使用的 provider/model，带兜底链。
+ *
+ * 解析顺序：
+ * 1. agent.options 显式指定（最优先）
+ * 2. session 的 request header config（agent 已选定模型时）
+ * 3. ctx.agentDefaultModel.currentSelection()（dsh 全局默认模型）
+ *
+ * 关键场景：新建会话时（session-start），模型尚未选定，前两条都拿不到，
+ * 此时必须用全局默认模型兜底，否则 wiki 全量生成会被跳过（要等第一条
+ * 消息选定模型后才触发）。
  */
-export function resolveAgentModel(agent: any): { provider: string; model: string } | null {
+export function resolveAgentModel(
+  agent: any,
+  ctx?: Context | null
+): { provider: string; model: string } | null {
   // 1. 优先显式 options
   let provider = agent?.options?.provider
   let model = agent?.options?.model
@@ -68,6 +79,13 @@ export function resolveAgentModel(agent: any): { provider: string; model: string
     const config = agent?.session?.requestHeader?.()?.config
     provider = provider ?? config?.provider
     model = model ?? config?.model
+  }
+
+  // 3. 回退到 dsh 全局默认模型（新建会话时模型未选定，必须靠它兜底）
+  if (!provider || !model) {
+    const fallback = (ctx as any)?.agentDefaultModel?.currentSelection?.()
+    provider = provider ?? fallback?.provider
+    model = model ?? fallback?.model
   }
 
   if (!provider || !model) return null

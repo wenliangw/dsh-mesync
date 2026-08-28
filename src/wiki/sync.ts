@@ -35,15 +35,16 @@ export type WikiSyncOutcome = 'full' | 'incremental' | 'skip'
 export async function ensureWikiSynced(
   ctx: Context,
   projectRoot: string,
-  agent: any
+  agent: any,
+  onFull?: () => void
 ): Promise<WikiSyncOutcome> {
   try {
     // 首次确保 rules + skill 文件存在（输出默认模板，尊重用户版本）
     ensureRulesFile(projectRoot)
     ensureSkillFile(projectRoot)
 
-    // 取 provider/model（loop 需要）
-    const resolved = resolveAgentModel(agent)
+    // 取 provider/model（loop 需要）；新建会话时靠 ctx.agentDefaultModel 兜底
+    const resolved = resolveAgentModel(agent, ctx)
     if (!resolved) {
       console.warn('[mesync] no provider/model configured on agent, skip wiki sync')
       return 'skip'
@@ -54,8 +55,9 @@ export async function ensureWikiSynced(
     const rule = loadSyncRules(projectRoot)
     const skill = loadSyncSkill(projectRoot)
 
-    // 1. 未初始化 → 全量生成
+    // 1. 未初始化 → 全量生成（先回调通知调用方，让用户看到「正在初始化」）
     if (!hasWikiData()) {
+      onFull?.()
       const ok = await runFullSync(ctx, projectRoot, rule, skill, resolved)
       if (ok) recordLastCommit(projectRoot)
       return ok ? 'full' : 'skip'

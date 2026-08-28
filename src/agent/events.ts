@@ -62,10 +62,14 @@ export function registerEvents(ctx: Context, config: Config): void {
     // - agent 执行任务后（有代码变更）→ 增量更新
     // - 其余 → skip（不重复执行 subagent）
     if (config.autoExtract) {
-      notify(agent, 'mesync 正在初始化项目认知…', 'mesync 正在读取工作区文件并生成项目认知文档（wiki），请稍候。')
+      // 第一步：先提示「正在检查」（此时还不知道是全量 / 增量 / skip）
+      notify(agent, 'mesync 正在检查是否需要初始化…', 'mesync 正在检查工作区的项目认知文档（wiki）是否需要初始化或更新，请稍候。')
 
       try {
-        const outcome = await ensureWikiSynced(ctx, projectRoot, agent)
+        const outcome = await ensureWikiSynced(ctx, projectRoot, agent, () => {
+          // 判定需要首次全量生成时，立即提示「正在初始化」
+          notify(agent, 'mesync 正在初始化…', 'mesync 正在读取工作区文件并生成项目认知文档（wiki），首次生成可能需要一点时间，请稍候。')
+        })
         if (outcome === 'full') {
           notify(agent, 'mesync 初始化完成', 'mesync 已完成项目认知文档（wiki）的首次生成，后续对话将基于它理解项目。')
         } else if (outcome === 'incremental') {
