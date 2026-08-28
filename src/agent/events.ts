@@ -1,15 +1,14 @@
 // agent/events — 事件监听
-// session-start：定位 workspace + 确保 wiki 同步 + 注入上下文
+// session-start：定位 workspace + 按需执行 wiki 同步 + 注入上下文 + 提示用户
 // pre-step：注入即时上下文
-// turn-stopping：决策信号检测（Phase 1 骨架）
+// turn-stopping：决策信号检测（后续实现）
 
 import type { Context } from '@deepseek-ai/cordis'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { initDB, closeDB } from '../db/index.js'
 import { ensureWikiSynced } from '../wiki/index.js'
 import { buildResonanceContext, buildTurnContext } from './context.js'
 import { setCurrentProjectRoot } from './tools.js'
-import { detectDecisionSignal } from '../decisions/detector.js'
-import type { TurnSummary } from '../decisions/detector.js'
 import type { Config } from '../config/index.js'
 
 /** 从 agent.session.header.cwd 解析 workspace 根目录 */
@@ -23,11 +22,30 @@ function resolveProjectRoot(agent: any): string | null {
   }
 }
 
+/** 向用户注入一条可见的 notice 提示（一行说明，折叠显示） */
+function notify(agent: any, summary: string, detail: string): void {
+  try {
+    const message = createUserMessage({
+      content: [{ type: 'text', text: detail }],
+      source: {
+        kind: 'plugin',
+        plugin: 'mesync',
+        form: 'notice',
+        summary,
+      },
+    })
+    agent?.inject?.(message)
+  } catch {
+    // 提示失败不影响主流程
+  }
+}
+
 /** 注册所有事件监听 */
 export function registerEvents(ctx: Context, config: Config): void {
   // ---- session-start：定位 workspace + wiki 同步 + 注入上下文 ----
   ctx.on('agent/session-start', async (payload: { agent: any; source: unknown }) => {
-    const projectRoot = resolveProjectRoot(payload.agent)
+    const agent = payload.agent
+    const projectRoot = resolveProjectRoot(agent)
     if (!projectRoot) {
       console.warn('[mesync] session has no cwd, skip')
       return
@@ -39,10 +57,20 @@ export function registerEvents(ctx: Context, config: Config): void {
     // 初始化 db（固定路径 .mesync/db/resonance.db）
     initDB(projectRoot)
 
-    // 确保 wiki 同步（首次全量生成，后续复用）
+    // 按需执行 wiki 同步：
+    // - 未初始化 → 全量生成（阻塞，提示用户）
+    // - agent 执行任务后（有代码变更）→ 增量更新
+    // - 其余 → skip（不重复执行 subagent）
     if (config.autoExtract) {
+      notify(agent, 'mesync 正在初始化项目认知…', 'mesync 正在读取工作区文件并生成项目认知文档（wiki），请稍候。')
+
       try {
-        await ensureWikiSynced(ctx, projectRoot, payload.agent)
+        const outcome = await ensureWikiSynced(ctx, projectRoot, agent)
+        if (outcome === 'full') {
+          notify(agent, 'mesync 初始化完成', 'mesync 已完成项目认知文档（wiki）的首次生成，后续对话将基于它理解项目。')
+        } else if (outcome === 'incremental') {
+          notify(agent, 'mesync 已更新项目认知', 'mesync 检测到代码变更，已增量更新项目认知文档（wiki）。')
+        }
       } catch (err) {
         console.warn('[mesync] wiki sync failed:', err)
       }
@@ -89,22 +117,6 @@ export function registerEvents(ctx: Context, config: Config): void {
     return next()
   })
 
-  // ---- turn-stopping：决策信号检测（Phase 1 骨架）----
-  if (config.autoExtract) {
-    ctx.on('agent/turn-stopping', async (payload: { agent: any }) => {
-      try {
-        // Phase 1：TurnSummary 收集 + 决策提取尚未实现，仅检测信号
-        const summary = buildTurnSummary(payload.agent)
-        if (!summary) return
-        const signals = detectDecisionSignal(summary)
-        if (!signals) return
-        // TODO(P1)：实现完整的决策提取（调 LLM → 写入 decisions 表）
-      } catch (err) {
-        console.error('[mesync] extraction failed:', err)
-      }
-    })
-  }
-
   // 清理
   ctx.effect(() => {
     return () => {
@@ -112,17 +124,4 @@ export function registerEvents(ctx: Context, config: Config): void {
       closeDB()
     }
   })
-}
-
-/** Phase 1 骨架：从 agent 收集 turn 信息（TODO: 从 session event log 收集） */
-function buildTurnSummary(_agent: any): TurnSummary | null {
-  return {
-    userMessages: [],
-    toolCalls: [],
-    filesModified: [],
-    hasExplicitChoice: false,
-    hasRememberKeyword: false,
-    repeatCount: 0,
-    moduleCount: 0,
-  }
 }

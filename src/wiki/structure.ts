@@ -10,8 +10,14 @@ export const WIKI_DIR = '.mesync/wiki'
 /** rules 目录 */
 export const RULES_DIR = '.mesync/rules'
 
+/** skills 目录 */
+export const SKILLS_DIR = '.mesync/skills'
+
 /** 默认的 wiki 同步规则文件 */
 export const SYNC_RULE_FILE = '.mesync/rules/_sync_wiki.rule.md'
+
+/** 默认的 wiki 同步 skill 文件（独立 skills 目录，与 rules 分类管理） */
+export const SYNC_SKILL_FILE = '.mesync/skills/_sync_wiki.skill.md'
 
 /** 判断一个相对路径是否是 wiki 文档（.mesync/ 下的 .md 文件） */
 export function isWikiDoc(relPath: string): boolean {

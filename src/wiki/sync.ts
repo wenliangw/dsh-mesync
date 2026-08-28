@@ -1,63 +1,67 @@
 // wiki/sync — Wiki 同步编排
-// 首次：全量生成 overview + architecture + business + constraints + modules
-// 后续：git 检测变更 → 增量更新受影响文档
+// 首次：轻量 loop 全量生成 .mesync/ 下的 md 文档
+// 后续：git 检测变更 → 轻量 loop 增量更新受影响文档
+//
+// 职责边界（方案 A）：
+// - loop 负责「让 LLM 读文件 → 生成全部 md 文档内容」并返回分节文本
+// - mesync 负责「解析分节 → 写盘 → 扫描同步 sqlite 引用记录（wiki_pages 表）」
+//
+// 生成规则在 _sync_wiki.rule.md，工作心法在 _sync_wiki.skill.md（零硬编码提示词）。
 
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
-import { hasWikiData, upsertWikiPage, getWikiPage, getDB, deleteWikiPage } from '../db/index.js'
-import {
-  buildFullWikiPrompt,
-  parseFullWikiResult,
-  buildIncrementalWikiPrompt,
-  parseIncrementalWikiResult,
-  type FullWikiResult,
-  type IncrementalWikiResult,
-} from './generate.js'
-import { ensureRulesFile, loadSyncRules } from './rules.js'
+import { hasWikiData, upsertWikiPage, listWikiPages, deleteWikiPage, getDB } from '../db/index.js'
+import { ensureRulesFile, ensureSkillFile, loadSyncRules, loadSyncSkill } from './rules.js'
 import { OVERVIEW_PATH, WIKI_DIR } from './structure.js'
-import { callLlm, resolveAgentModel } from '../agent/llm.js'
+import { runWikiLoop } from './loop.js'
+import { resolveAgentModel } from '../agent/llm.js'
 import { detectChanges, isGitRepo, getGitHead, isDocsOnlyChange, formatChangeSummary } from './git.js'
 
 /** meta key：记录上次同步时的 git commit */
 const META_LAST_COMMIT = 'wiki_last_commit'
 
+/** wiki 同步结果 */
+export type WikiSyncOutcome = 'full' | 'incremental' | 'skip'
+
 /**
  * 确保 wiki 同步（首次全量 + 后续增量）。
  *
- * 逻辑：
- * - 无 wiki 数据 → 首次全量生成
- * - 有 wiki 数据 → git 检测变更，有变更则增量更新
- * - 非 git 项目 → 首次生成后跳过增量（无法检测变更）
- *
- * @returns 'full' | 'incremental' | 'skip'
+ * 执行时机（由调用方 events.ts 控制）：
+ * - 未初始化（无 wiki 数据）→ 全量生成
+ * - agent 执行任务之后（git 检测到变更）→ 增量更新
+ * - 其余情况 → skip（不重复执行）
  */
 export async function ensureWikiSynced(
   ctx: Context,
   projectRoot: string,
   agent: any
-): Promise<'full' | 'incremental' | 'skip'> {
+): Promise<WikiSyncOutcome> {
   try {
-    // 首次确保 rules 文件存在
+    // 首次确保 rules + skill 文件存在（输出默认模板，尊重用户版本）
     ensureRulesFile(projectRoot)
+    ensureSkillFile(projectRoot)
 
+    // 取 provider/model（loop 需要）
     const resolved = resolveAgentModel(agent)
     if (!resolved) {
       console.warn('[mesync] no provider/model configured on agent, skip wiki sync')
       return 'skip'
     }
-    const { provider, model } = resolved
+    console.log(`[mesync] resolveAgentModel → provider=${resolved.provider} model=${resolved.model}`)
 
-    const rules = loadSyncRules(projectRoot)
+    // 加载 rule（生成规则） + skill（工作心法）两份文档，代码不硬编码任何生成提示词
+    const rule = loadSyncRules(projectRoot)
+    const skill = loadSyncSkill(projectRoot)
 
-    // 首次全量生成
+    // 1. 未初始化 → 全量生成
     if (!hasWikiData()) {
-      const ok = await runFullSync(ctx, projectRoot, rules, provider, model)
-      recordLastCommit(projectRoot)
+      const ok = await runFullSync(ctx, projectRoot, rule, skill, resolved)
+      if (ok) recordLastCommit(projectRoot)
       return ok ? 'full' : 'skip'
     }
 
-    // 已有 wiki 数据 → 增量同步
+    // 2. 已初始化 → 检测代码变更，有变更才增量更新
     if (!isGitRepo(projectRoot)) {
       console.warn('[mesync] not a git repo, skip incremental sync')
       return 'skip'
@@ -77,7 +81,7 @@ export async function ensureWikiSynced(
       return 'skip'
     }
 
-    const ok = await runIncrementalSync(ctx, projectRoot, rules, provider, model, changes)
+    const ok = await runIncrementalSync(ctx, projectRoot, rule, skill, resolved, changes)
     if (ok) recordLastCommit(projectRoot)
     return ok ? 'incremental' : 'skip'
   } catch (err) {
@@ -90,24 +94,17 @@ export async function ensureWikiSynced(
 async function runFullSync(
   ctx: Context,
   projectRoot: string,
-  rules: string,
-  provider: string,
-  model: string
+  rule: string,
+  skill: string,
+  resolved: { provider: string; model: string }
 ): Promise<boolean> {
-  const { system, user } = buildFullWikiPrompt(projectRoot, rules)
-  const content = await callLlm(ctx, { provider, model, messages: [{ role: 'user', content: user }], system })
-  if (!content || !content.trim()) {
-    console.warn('[mesync] LLM returned empty wiki, skip')
-    return false
-  }
-
-  const result = parseFullWikiResult(content)
+  const result = await runWikiLoop(ctx, resolved.provider, resolved.model, rule, skill, projectRoot)
   if (!result) {
-    console.warn('[mesync] failed to parse full wiki result')
+    console.warn('[mesync] wiki loop returned no result')
     return false
   }
-
-  writeFullWiki(projectRoot, result)
+  // loop 已通过 write 工具把文档写入 .mesync/*.md，这里扫描同步 sqlite 索引
+  syncWikiIndex(projectRoot, 'initial')
   return true
 }
 
@@ -115,129 +112,92 @@ async function runFullSync(
 async function runIncrementalSync(
   ctx: Context,
   projectRoot: string,
-  rules: string,
-  provider: string,
-  model: string,
+  rule: string,
+  skill: string,
+  resolved: { provider: string; model: string },
   changes: ReturnType<typeof detectChanges>
 ): Promise<boolean> {
+  // 把「变更摘要」和「当前 wiki」作为附加上下文传给 loop，让它按规则增量更新
   const changeSummary = formatChangeSummary(changes.files)
   const currentWiki = readCurrentWiki(projectRoot)
 
-  const { system, user } = buildIncrementalWikiPrompt(projectRoot, rules, changeSummary, currentWiki)
-  const content = await callLlm(ctx, { provider, model, messages: [{ role: 'user', content: user }], system })
-  if (!content || !content.trim()) {
-    console.warn('[mesync] LLM returned empty incremental result, skip')
-    return false
-  }
+  const extraContext = [
+    '## 本次是「增量更新」任务',
+    '',
+    '项目代码发生了变更，请按规则增量更新 wiki（只输出发生变化、需要更新的文档，未变化的文档不要输出）。',
+    '',
+    '## 代码变更摘要',
+    '',
+    changeSummary,
+    '',
+    '## 当前 wiki 内容（供参考）',
+    '',
+    currentWiki,
+  ].join('\n')
 
-  const result = parseIncrementalWikiResult(content)
+  const result = await runWikiLoop(ctx, resolved.provider, resolved.model, rule, skill, projectRoot, extraContext)
   if (!result) {
-    console.warn('[mesync] failed to parse incremental wiki result')
+    console.warn('[mesync] wiki loop returned no result')
     return false
   }
-
-  applyIncremental(projectRoot, result)
+  syncWikiIndex(projectRoot, 'incremental')
   return true
 }
 
-/** 将首次全量结果落盘 */
-function writeFullWiki(projectRoot: string, result: FullWikiResult): void {
+/**
+ * 扫描 .mesync/ 下的 wiki 文档（overview.md + wiki 目录下的 md），
+ * 逐个 upsert 到 sqlite 的 wiki_pages 表，并删除文件已不存在的旧记录。
+ */
+function syncWikiIndex(projectRoot: string, source: 'initial' | 'incremental'): void {
+  const head = getGitHead(projectRoot)
   const now = new Date().toISOString()
 
-  // overview.md（必写）
-  if (result.overview.trim()) {
-    writeWikiFile(projectRoot, OVERVIEW_PATH, result.overview, 'initial', now)
+  const docs = collectWikiDocs(projectRoot)
+  const docSet = new Set(docs)
+
+  for (const relPath of docs) {
+    upsertWikiPage({
+      path: relPath,
+      git_commit: head,
+      updated_at: now,
+      source,
+    })
   }
 
-  // architecture.md
-  if (result.architecture.trim()) {
-    writeWikiFile(projectRoot, `${WIKI_DIR}/architecture.md`, result.architecture, 'initial', now)
-  }
-
-  // business.md
-  if (result.business.trim()) {
-    writeWikiFile(projectRoot, `${WIKI_DIR}/business.md`, result.business, 'initial', now)
-  }
-
-  // constraints.md
-  if (result.constraints.trim()) {
-    writeWikiFile(projectRoot, `${WIKI_DIR}/constraints.md`, result.constraints, 'initial', now)
-  }
-
-  // modules/*.md
-  for (const m of result.modules) {
-    if (m.content.trim()) {
-      writeWikiFile(projectRoot, `${WIKI_DIR}/modules/${m.name}.md`, m.content, 'initial', now)
-    }
-  }
-}
-
-/** 应用增量更新结果 */
-function applyIncremental(projectRoot: string, result: IncrementalWikiResult): void {
-  const now = new Date().toISOString()
-
-  if (result.overview !== null) {
-    writeWikiFile(projectRoot, OVERVIEW_PATH, result.overview, 'incremental', now)
-  }
-  if (result.architecture !== null) {
-    writeWikiFile(projectRoot, `${WIKI_DIR}/architecture.md`, result.architecture, 'incremental', now)
-  }
-  if (result.business !== null) {
-    writeWikiFile(projectRoot, `${WIKI_DIR}/business.md`, result.business, 'incremental', now)
-  }
-  if (result.constraints !== null) {
-    writeWikiFile(projectRoot, `${WIKI_DIR}/constraints.md`, result.constraints, 'incremental', now)
-  }
-
-  for (const m of result.modules) {
-    if (m.content.trim()) {
-      writeWikiFile(projectRoot, `${WIKI_DIR}/modules/${m.name}.md`, m.content, 'incremental', now)
+  // 删除索引里文件已不存在的旧记录
+  for (const existing of listWikiPages()) {
+    if (!docSet.has(existing.path)) {
+      deleteWikiPage(existing.path)
     }
   }
 
-  // 删除模块
-  for (const name of result.removeModules) {
-    const relPath = `${WIKI_DIR}/modules/${name}.md`
-    removeWikiFile(projectRoot, relPath)
+  console.log(`[mesync] synced ${docs.length} wiki docs to index (source=${source})`)
+}
+
+/** 收集 .mesync/ 下的所有 wiki 文档相对路径（相对 .mesync/，如 overview.md、wiki/xxx.md） */
+function collectWikiDocs(projectRoot: string): string[] {
+  const result: string[] = []
+
+  const overviewPath = path.join(projectRoot, OVERVIEW_PATH)
+  if (fs.existsSync(overviewPath)) {
+    result.push('overview.md')
   }
-}
 
-/** 写单个 wiki 文件 + 记录索引 */
-function writeWikiFile(
-  projectRoot: string,
-  relPath: string,
-  content: string,
-  source: 'initial' | 'incremental',
-  now: string
-): void {
-  const full = path.join(projectRoot, relPath)
-  ensureDir(path.dirname(full))
-  fs.writeFileSync(full, content.trim() + '\n', 'utf-8')
-
-  upsertWikiPage({
-    path: relPath,
-    git_commit: getGitHead(projectRoot),
-    updated_at: now,
-    source,
-  })
-}
-
-/** 删除单个 wiki 文件 + 移除索引 */
-function removeWikiFile(projectRoot: string, relPath: string): void {
-  const full = path.join(projectRoot, relPath)
-  try {
-    if (fs.existsSync(full)) fs.unlinkSync(full)
-  } catch {
-    // 忽略
+  const wikiDir = path.join(projectRoot, WIKI_DIR)
+  if (fs.existsSync(wikiDir)) {
+    for (const f of listMdFiles(wikiDir)) {
+      const rel = path.relative(path.join(projectRoot, '.mesync'), f).replace(/\\/g, '/')
+      result.push(rel)
+    }
   }
-  deleteWikiPage(relPath)
+
+  return result
 }
 
-/** 读取当前所有 wiki 内容（供增量更新 prompt 参考） */
+/** 读取当前所有 wiki 内容（供增量更新参考） */
 function readCurrentWiki(projectRoot: string): string {
   const parts: string[] = []
 
-  // overview
   const overviewPath = path.join(projectRoot, OVERVIEW_PATH)
   if (fs.existsSync(overviewPath)) {
     parts.push(`### ${OVERVIEW_PATH}`)
@@ -245,7 +205,6 @@ function readCurrentWiki(projectRoot: string): string {
     parts.push('')
   }
 
-  // wiki/ 目录
   const wikiDir = path.join(projectRoot, WIKI_DIR)
   if (fs.existsSync(wikiDir)) {
     const files = listMdFiles(wikiDir)

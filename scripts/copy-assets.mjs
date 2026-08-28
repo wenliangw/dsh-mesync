@@ -1,5 +1,6 @@
 // scripts/copy-assets.mjs — 复制静态资源（模板 md）到 lib
-// tsc 只编译 .ts，不复制 .md 等静态资源，这里手动复制
+// tsc 只编译 .ts，不复制 .md 等静态资源，这里手动复制。
+// 模板按 rules/、skills/ 分类存放，递归复制子目录。
 
 import * as fs from 'node:fs'
 import * as path from 'node:path'
@@ -16,9 +17,23 @@ if (!fs.existsSync(srcTemplates)) {
 
 fs.mkdirSync(dstTemplates, { recursive: true })
 
-const files = fs.readdirSync(srcTemplates)
-for (const file of files) {
-  fs.copyFileSync(path.join(srcTemplates, file), path.join(dstTemplates, file))
+let count = 0
+
+/** 递归复制目录内容 */
+function copyDir(src, dst) {
+  fs.mkdirSync(dst, { recursive: true })
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name)
+    const dstPath = path.join(dst, entry.name)
+    if (entry.isDirectory()) {
+      copyDir(srcPath, dstPath)
+    } else {
+      fs.copyFileSync(srcPath, dstPath)
+      count++
+    }
+  }
 }
 
-console.log(`[copy-assets] 复制 ${files.length} 个模板文件到 lib/templates/`)
+copyDir(srcTemplates, dstTemplates)
+
+console.log(`[copy-assets] 复制 ${count} 个模板文件到 lib/templates/`)

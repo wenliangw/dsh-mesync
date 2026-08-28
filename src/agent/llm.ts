@@ -56,11 +56,20 @@ export async function callLlm(ctx: Context, options: LlmCallOptions): Promise<st
 
 /**
  * 从 agent 获取当前使用的 provider/model。
- * agent.options = { provider?, model? }，缺省时用兜底值。
+ * agent.options = { provider?, model? }，缺省时从 session 的 request header config 读取。
  */
 export function resolveAgentModel(agent: any): { provider: string; model: string } | null {
-  const provider = agent?.options?.provider
-  const model = agent?.options?.model
+  // 1. 优先显式 options
+  let provider = agent?.options?.provider
+  let model = agent?.options?.model
+
+  // 2. 回退到 session 的 request header config（agent 未显式传 options 时也能取到）
+  if (!provider || !model) {
+    const config = agent?.session?.requestHeader?.()?.config
+    provider = provider ?? config?.provider
+    model = model ?? config?.model
+  }
+
   if (!provider || !model) return null
   return { provider, model }
 }

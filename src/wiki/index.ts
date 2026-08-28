@@ -2,5 +2,5 @@
 
 export * from './structure.js'
 export * from './rules.js'
-export * from './generate.js'
+export * from './loop.js'
 export * from './sync.js'
