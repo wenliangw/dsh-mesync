@@ -15,6 +15,8 @@ export interface DecisionNode {
   supersedes: string | null
   alternatives: Alternative[]
   taste_signals: TasteSignalRef[]
+  /** 决策归属的分类（软关联，可多个），复用 wiki/品味的分类路径，如 ['tastes/api-design', 'wiki/modules/input'] */
+  scopes: string[]
 }
 
 export interface Alternative {

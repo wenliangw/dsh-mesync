@@ -10,7 +10,7 @@
 
 - **趁热**：决策刚发生、上下文新鲜时记录最准。
 - **不打扰**：顺手调一次 `remember` 工具填好即可，不打断任务、不长篇汇报。
-- **抓重点**：`decision`（定了什么）+ `rationale`（为什么）+ `alternatives`（否掉了什么）。有品味偏好带上 `taste_signals`（落盘见 `_sync_taste.skill.md`）；有前因填 `caused_by`。
+- **抓重点**：`decision`（定了什么，**一句话概括**，这是未来检索用的摘要）+ `rationale`（为什么）+ `alternatives`（否掉了什么）。有品味偏好带上 `taste_signals`（落盘见 `.mesync/skills/_sync_taste.skill.md`）；有前因填 `caused_by`；判断这条决策和哪个组件/技术/品味相关，顺手填 `scopes`（分类路径，见规则文件的「scopes 格式约定」）。
 
 ## 质量 > 数量
 

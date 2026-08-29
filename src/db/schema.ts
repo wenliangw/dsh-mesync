@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS decisions (
   caused_by     TEXT,
   supersedes    TEXT,
   alternatives  TEXT NOT NULL DEFAULT '[]',
-  taste_signals TEXT NOT NULL DEFAULT '[]'
+  taste_signals TEXT NOT NULL DEFAULT '[]',
+  scopes        TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE INDEX IF NOT EXISTS idx_decisions_created ON decisions(created_at);

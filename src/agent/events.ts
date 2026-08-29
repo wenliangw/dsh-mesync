@@ -55,13 +55,12 @@ export function registerEvents(ctx: Context, config: Config): void {
     // 各内容的「何时做、如何做」以及设计原则。它是唯一的顶层注入 skill，
     // 其余规则/心法文件（_init_wiki / _sync_wiki / _sync_decision / _sync_taste 等）
     // 都通过总纲里的引用，由主 agent 需要时自行 read，不做顶层注入（避免 token 膨胀）。
-    if (config.autoExtract) {
-      ctx.systemPrompt.section({
-        name: 'mesync-memory-guide',
-        order: 140,
-        text: () => loadMaintainMemorySkill(projectRoot),
-      })
-    }
+    // 总纲是 mesync 的设计基础，始终注入，不提供开关；禁用 mesync 请用 dsh 的插件禁启机制。
+    ctx.systemPrompt.section({
+      name: 'mesync-memory-guide',
+      order: 140,
+      text: () => loadMaintainMemorySkill(projectRoot),
+    })
 
     // 注入同频记忆上下文（wiki 速览 + 决策链 + 品味）。
     // text 传函数，每次 prompt 组装时实时读取最新 overview.md / 决策 / 品味。

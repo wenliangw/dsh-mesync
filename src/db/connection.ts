@@ -68,6 +68,9 @@ export function initDB(projectRoot: string): Database.Database {
   db.pragma('foreign_keys = ON')
   db.exec(SCHEMA_SQL)
 
+  // 轻量迁移：旧版本 decisions 表缺 scopes 列时补上（幂等）。
+  migrate(db)
+
   // 初始化 meta
   const now = new Date().toISOString()
   db.prepare('INSERT OR IGNORE INTO meta (key, value, updated_at) VALUES (?, ?, ?)')
@@ -93,4 +96,16 @@ export function closeDB(): void {
   }
   dbCache.clear()
   currentRoot = null
+}
+
+/**
+ * 轻量迁移：检测并补齐旧库缺失的列。幂等，可重复执行。
+ * 当前只处理 decisions.scopes 列（后续新增列在此追加）。
+ */
+function migrate(db: Database.Database): void {
+  const cols = db.prepare('PRAGMA table_info(decisions)').all() as any[]
+  const has = (name: string) => cols.some(c => c.name === name)
+  if (!has('scopes')) {
+    db.exec("ALTER TABLE decisions ADD COLUMN scopes TEXT NOT NULL DEFAULT '[]'")
+  }
 }

@@ -2,6 +2,26 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 规范，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.1.0-rc.3] - 2026-08-30
+
+### 新增
+
+- 决策增加 `scopes` 字段（多归属分类标签，软关联，复用 wiki/品味分类路径），支持按分类缩小决策检索范围。
+- 新增 `recall_detail` 工具：按 id 拉取单条决策的完整内容（rationale/alternatives/因果链/scopes）。
+
+### 变更
+
+- `recall` 工具改为返回**决策摘要列表**（id + 一句话 + outcome + scopes），支持 `scope`/`query` 参数，默认上限 50，不再返回全量详情。
+- `remember` 工具新增 `scopes` 参数。
+
+### 移除
+
+- 删除 `autoExtract` 配置——总纲是 mesync 的设计基础必须始终注入，不提供开关；禁用 mesync 请用 dsh 的插件禁启机制（`disabled: true`）。
+
+### 修复
+
+- 清理 `test/` 下三个已失效的死测试（detector/taste/wiki-git），修复 connection 测试。
+
 ## [0.1.0-rc.2] - 2026-08-30
 
 ### 修复

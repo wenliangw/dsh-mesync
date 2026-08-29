@@ -5,5 +5,4 @@
     - id: mesync
       name: 'dsh-mesync'
       config:
-        autoExtract: true
         maxContextDecisions: 5

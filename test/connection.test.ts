@@ -6,8 +6,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { initDB, getDB, closeDB, defaultDbPath } from '../src/db/connection.js'
-import { hasWikiData } from '../src/db/wiki.js'
+import { initDB, getDB, closeDB } from '../src/db/connection.js'
+import { listWikiPages } from '../src/db/wiki.js'
 
 let tmpRoot: string
 
@@ -21,9 +21,9 @@ afterEach(() => {
 })
 
 describe('initDB 连接生命周期', () => {
-  it('首次 initDB 后 hasWikiData() 为 false（空库）', () => {
+  it('首次 initDB 后 wiki_pages 为空（空库）', () => {
     initDB(tmpRoot)
-    expect(hasWikiData()).toBe(false)
+    expect(listWikiPages()).toHaveLength(0)
   })
 
   it('写入 wiki 数据后，不重启（同一进程）删除 .mesync 并重新 initDB，应回到空库状态', () => {
@@ -33,17 +33,17 @@ describe('initDB 连接生命周期', () => {
     db.prepare(
       'INSERT INTO wiki_pages (path, updated_at, source) VALUES (?, ?, ?)'
     ).run('overview.md', new Date().toISOString(), 'initial')
-    expect(hasWikiData()).toBe(true)
+    expect(listWikiPages()).toHaveLength(1)
 
     // 2. 模拟「手动删除 .mesync 文件夹」（进程未重启，缓存仍在）
-    const dbFile = defaultDbPath(tmpRoot)
+    const dbFile = path.join(tmpRoot, '.mesync', 'db', 'resonance.db')
     expect(fs.existsSync(dbFile)).toBe(true)
     fs.rmSync(path.join(tmpRoot, '.mesync'), { recursive: true, force: true })
     expect(fs.existsSync(dbFile)).toBe(false)
 
     // 3. 重新 initDB：必须检测到文件已删除，重建连接，拿到空库
     initDB(tmpRoot)
-    expect(hasWikiData()).toBe(false)
+    expect(listWikiPages()).toHaveLength(0)
   })
 
   it('不删除文件时，重复 initDB 复用同一连接（幂等）', () => {
@@ -51,6 +51,6 @@ describe('initDB 连接生命周期', () => {
     const b = initDB(tmpRoot)
     expect(a).toBe(b)
     // 连接仍有效：能正常读写
-    expect(hasWikiData()).toBe(false)
+    expect(listWikiPages()).toHaveLength(0)
   })
 })

@@ -11,6 +11,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import {
   searchDecisions,
+  searchDecisionsByScope,
+  getDecisionById,
   insertDecision,
   syncWikiFromFiles,
   listWikiPages,
@@ -26,35 +28,74 @@ export function setCurrentProjectRoot(root: string | null): void {
 }
 
 export function registerTools(ctx: Context): void {
-  // ---- recall — 查询历史决策 ----
+  // ---- recall — 查询历史决策摘要 ----
   ctx.tools.register(defineTool({
     name: 'recall',
     description:
-      'Search the project resonance memory for related decisions and their rationale. ' +
-      'Use this when you need to understand why something was done a certain way, or ' +
-      'before making a new decision to find a matching historical decision.',
+      'List decision summaries from the project resonance memory. Returns one-line summaries ' +
+      '(id + decision + outcome + scopes) so you can judge relevance cheaply. Use scope to narrow to a ' +
+      'category (e.g. "tastes/api-design" or "wiki/modules/input"), or query for keyword match. ' +
+      'For the full details of one decision, call recall_detail with its id.',
     parameters: {
-      query: { type: 'string', required: true, description: 'What to search for — keywords or concepts.' },
+      scope: { type: 'string', description: 'Category path filter, e.g. "tastes/api-design" or "wiki/modules/input".' },
+      query: { type: 'string', description: 'Keyword to match in decision/rationale/trigger.' },
+      limit: { type: 'number', description: 'Max results (default 50).' },
     },
     output: {
       schema: { type: 'string' },
       render: (_args: any, value: any) => [{ type: 'text', text: value }],
     },
-    async execute(args: { query: string }, _exec: any) {
-      const decisions = searchDecisions(args.query)
+    async execute(args: { scope?: string; query?: string; limit?: number }, _exec: any) {
+      const limit = args.limit ?? 50
+      const decisions = args.scope
+        ? searchDecisionsByScope(args.scope, limit)
+        : args.query
+          ? searchDecisions(args.query, limit)
+          : (() => { throw new Error('recall requires scope or query') })()
+
       if (decisions.length === 0) return 'No related decisions found.'
 
-      const parts = ['## Related Decisions']
+      const parts = ['## Decision Summaries']
       for (const d of decisions) {
-        parts.push(`- **${d.decision}** (${d.outcome})`)
-        parts.push(`  Rationale: ${d.rationale}`)
-        if (d.alternatives?.length) {
-          parts.push(`  Alternatives: ${d.alternatives.map(a => `${a.option} (${a.why_not})`).join(', ')}`)
-        }
-        if (d.taste_signals?.length) {
-          parts.push(`  Taste signals: ${d.taste_signals.map(t => t.signal).join(', ')}`)
-        }
+        const scopes = d.scopes?.length ? ` [${d.scopes.join(', ')}]` : ''
+        parts.push(`- ${d.id} · **${d.decision}** (${d.outcome})${scopes}`)
       }
+      parts.push('', 'Use recall_detail to read the full rationale/alternatives of a specific decision.')
+      return parts.join('\n')
+    },
+  }))
+
+  // ---- recall_detail — 拉取单条决策的完整内容 ----
+  ctx.tools.register(defineTool({
+    name: 'recall_detail',
+    description:
+      'Read the full details of one decision: rationale, trigger, alternatives, taste_signals, ' +
+      'causal links (caused_by / supersedes), and scopes.',
+    parameters: {
+      id: { type: 'string', required: true, description: 'The decision id from recall summaries.' },
+    },
+    output: {
+      schema: { type: 'string' },
+      render: (_args: any, value: any) => [{ type: 'text', text: value }],
+    },
+    async execute(args: { id: string }, _exec: any) {
+      const d = getDecisionById(args.id)
+      if (!d) return `No decision found with id ${args.id}.`
+
+      const parts = [`## ${d.decision} (${d.outcome})`]
+      parts.push(`id: ${d.id}`)
+      parts.push(`created_at: ${d.created_at}`)
+      if (d.trigger) parts.push(`trigger: ${d.trigger}`)
+      parts.push(`rationale: ${d.rationale}`)
+      if (d.alternatives?.length) {
+        parts.push(`alternatives: ${d.alternatives.map(a => `${a.option} (${a.why_not})`).join(', ')}`)
+      }
+      if (d.taste_signals?.length) {
+        parts.push(`taste_signals: ${d.taste_signals.map(t => `${t.signal}: ${t.context}`).join('; ')}`)
+      }
+      if (d.caused_by) parts.push(`caused_by: ${d.caused_by}`)
+      if (d.supersedes) parts.push(`supersedes: ${d.supersedes}`)
+      if (d.scopes?.length) parts.push(`scopes: ${d.scopes.join(', ')}`)
       return parts.join('\n')
     },
   }))
@@ -74,6 +115,7 @@ export function registerTools(ctx: Context): void {
       outcome: { type: 'string', description: '"adopted" (default) / "reverted" / "refined" / "pending".' },
       caused_by: { type: 'string', description: 'ID of the decision that caused this one.' },
       supersedes: { type: 'string', description: 'ID of the previous decision this one replaces/overrides.' },
+      scopes: { type: 'string', description: 'JSON array of category paths this decision relates to, e.g. ["tastes/api-design","wiki/modules/input"].' },
     },
     output: {
       schema: { type: 'string' },
@@ -88,12 +130,15 @@ export function registerTools(ctx: Context): void {
       outcome?: string
       caused_by?: string
       supersedes?: string
+      scopes?: string
     }, _exec: any) {
       let alts: Alternative[] = []
       let tastes: TasteSignalRef[] = []
+      let scopes: string[] = []
       try {
         if (args.alternatives) alts = JSON.parse(args.alternatives)
         if (args.taste_signals) tastes = JSON.parse(args.taste_signals)
+        if (args.scopes) scopes = JSON.parse(args.scopes)
       } catch { /* ignore */ }
 
       const node: DecisionNode = {
@@ -109,6 +154,7 @@ export function registerTools(ctx: Context): void {
         supersedes: args.supersedes || null,
         alternatives: alts,
         taste_signals: tastes,
+        scopes,
       }
       insertDecision(node)
 

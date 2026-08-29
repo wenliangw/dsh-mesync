@@ -36,9 +36,8 @@ npm run build
 ```yaml
 - insert:
     - id: mesync
-      name: 'file:///absolute/path/to/dsh-mesync/lib/index.js'
+      name: 'dsh-mesync'
       config:
-        autoExtract: true        # 是否自动注入记忆上下文（默认 true）
         maxContextDecisions: 5   # 注入上下文时最多带几条决策（默认 5）
 ```
 
