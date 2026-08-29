@@ -1,10 +1,9 @@
 # mesync bundle 配置层
-# 作为 dsh.bundle 被引用，插件行用包名解析（Node 从 installed 代码里找）
+# 作为 dsh.bundle 被引用，插件行的 name 用包名（dsh-mesync）解析，
+# id 保持 mesync（短 id，供 patch 定位）。
 - insert:
     - id: mesync
-      name: 'mesync'
+      name: 'dsh-mesync'
       config:
-        dbPath: '.mesync/resonance.db'
         autoExtract: true
-        tastePath: '.mesync/tastes/'
         maxContextDecisions: 5

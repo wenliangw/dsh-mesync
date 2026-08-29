@@ -2,6 +2,12 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 规范，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.1.0-rc.1] - 2026-08-30
+
+### 修复
+
+- 修复 bundle 配置 `cordis.patch.yml` 中插件 `name` 仍为旧包名 `mesync`，改为包名 `dsh-mesync`；移除已废弃的 `dbPath`/`tastePath` 配置字段，仅保留 `autoExtract` 和 `maxContextDecisions`。
+
 ## [0.1.0-rc.0] - 2026-08-30
 
 ### 概览
