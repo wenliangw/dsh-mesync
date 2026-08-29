@@ -1,6 +1,6 @@
 # mesync Wiki 生成心法
 
-本文件讲「怎么更好地生成 wiki」。文档结构、各文档要求见 `../rules/_sync_wiki.rule.md`，这里不重复。
+本文件讲「怎么更好地生成 wiki」。文档结构、各文档要求见 `.mesync/rules/_sync_wiki.rule.md`，这里不重复。
 
 ## 核心心法
 

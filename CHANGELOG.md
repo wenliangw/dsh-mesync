@@ -2,6 +2,12 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 规范，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.1.0-rc.2] - 2026-08-30
+
+### 修复
+
+- 修复 skill/rule 文档中的文件路径引用不明确问题：统一为 `.mesync/` 前缀的完整路径，并在总纲中新增「文件位置约定」，避免主 Agent 在服务器上全盘搜索找不到文件。
+
 ## [0.1.0-rc.1] - 2026-08-30
 
 ### 修复

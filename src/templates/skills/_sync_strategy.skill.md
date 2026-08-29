@@ -6,6 +6,8 @@ mesync 是运行在 DeepSeek Harness (dsh) 里的项目级记忆插件。它的�
 
 ## 记忆模型：三块内容，各管一件事
 
+**文件位置约定（重要）**：mesync 的所有文件都存放在**当前 workspace 根目录下的 `.mesync/` 目录**里。下文提到的 `skills/xxx.md`、`rules/xxx.md`、`tastes/xxx.md`，完整路径分别是 `.mesync/skills/xxx.md`、`.mesync/rules/xxx.md`、`.mesync/tastes/xxx.md`（相对 workspace 根目录）。用 `read` 工具读这些文件时，请用完整的 `.mesync/` 前缀路径，不要在服务器上全盘搜索。
+
 mesync 的记忆由三部分组成。**判断一条信息属于哪块，用各自的「判断标准」，三者不互斥——一条信息可以同时属于多块，不要三选一。**
 
 | 内容 | 回答什么 | 存在哪里 | 判断标准 |
@@ -37,7 +39,7 @@ mesync 的记忆由三部分组成。**判断一条信息属于哪块，用各�
 1. **关联层**：决策里的 `taste_signals` 字段（记录「决策 → 品味」的指针）。
 2. **落盘层**：`tastes/<分类>.md` 的详细内容（品味的完整描述 + 来源）。
 
-**记了 `taste_signals`，就要配套落到 `tastes/`。只填字段不落盘是「只记了半层」。**（详细见 `skills/_sync_taste.skill.md`）
+**记了 `taste_signals`，就要配套落到 `tastes/`。只填字段不落盘是「只记了半层」。**（详细见 `.mesync/skills/_sync_taste.skill.md`）
 
 ## 完整的工作闭环
 
@@ -54,7 +56,7 @@ mesync 的记忆由三部分组成。**判断一条信息属于哪块，用各�
 ### ③ 反馈：处理肯定与否定，演化决策
 
 - **用户肯定** → 决策在当前场景成立，自然继续。
-- **用户否定** → 这是最重要的信号。回看当初的 rationale 向用户澄清，引导用户说明否定原因（背后必有场景差异），达成新共识后**追加一条新决策**（`caused_by`/`supersedes` 关联旧决策）并更新旧决策 outcome。具体流程见 `skills/_sync_decision.skill.md`。
+- **用户否定** → 这是最重要的信号。回看当初的 rationale 向用户澄清，引导用户说明否定原因（背后必有场景差异），达成新共识后**追加一条新决策**（`caused_by`/`supersedes` 关联旧决策）并更新旧决策 outcome。具体流程见 `.mesync/skills/_sync_decision.skill.md`。
 
   核心：**「加深印象」不是调权重，而是延伸决策链**——每次否定都说明场景有差异，差异要用更多决策节点记录。
 
@@ -62,7 +64,7 @@ mesync 的记忆由三部分组成。**判断一条信息属于哪块，用各�
 
 ### 首次进入项目：先生成 Wiki，再开发
 
-**硬性要求**：如果项目还没有 Wiki（`.mesync/overview.md` 不存在），在开始处理用户的任何开发任务之前，**必须**先读 `skills/_init_wiki.skill.md` 完成 Wiki 初始化（探索项目、生成 `.mesync/` 认知文档、调用 `mesync_sync_wiki`）。
+**硬性要求**：如果项目还没有 Wiki（`.mesync/overview.md` 不存在），在开始处理用户的任何开发任务之前，**必须**先读 `.mesync/skills/_init_wiki.skill.md` 完成 Wiki 初始化（探索项目、生成 `.mesync/` 认知文档、调用 `mesync_sync_wiki`）。
 
 - **不得跳过**：不能因为用户已给了具体开发任务，就先开发、把 Wiki 放后面。顺序永远是「先初始化 Wiki → 再开发」。
 - **已生成则跳过**：`.mesync/overview.md` 已存在就直接开始任务。
@@ -74,9 +76,9 @@ mesync 的记忆由三部分组成。**判断一条信息属于哪块，用各�
 
 | 内容 | 何时做 | 详细规则 |
 |------|--------|----------|
-| Wiki | 首次必须先初始化；开发中代码变更时增量更新 | `skills/_init_wiki.skill.md` + `rules/_sync_wiki.rule.md` + `skills/_sync_wiki.skill.md` |
-| 品味 | 识别到用户偏好时，落盘 `tastes/`（含 taste_signals 联动） | `skills/_sync_taste.skill.md` |
-| 决策 | 有意义的取舍发生时记录；用户否定时更新 | `skills/_sync_decision.skill.md` + `rules/_sync_decision.rule.md` |
+| Wiki | 首次必须先初始化；开发中代码变更时增量更新 | `.mesync/skills/_init_wiki.skill.md` + `.mesync/rules/_sync_wiki.rule.md` + `.mesync/skills/_sync_wiki.skill.md` |
+| 品味 | 识别到用户偏好时，落盘 `tastes/`（含 taste_signals 联动） | `.mesync/skills/_sync_taste.skill.md` |
+| 决策 | 有意义的取舍发生时记录；用户否定时更新 | `.mesync/skills/_sync_decision.skill.md` + `.mesync/rules/_sync_decision.rule.md` |
 
 做具体事情前，先读对应的规则/心法文件，不要凭感觉操作。
 

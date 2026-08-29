@@ -1,6 +1,6 @@
 # mesync Wiki 初始化与维护
 
-首次进入项目时，按本文件完成 Wiki 的初始化与维护。文档结构、各文档写什么见 `rules/_sync_wiki.rule.md`，生成心法见 `skills/_sync_wiki.skill.md`，这里只讲操作步骤。
+首次进入项目时，按本文件完成 Wiki 的初始化与维护。文档结构、各文档写什么见 `.mesync/rules/_sync_wiki.rule.md`，生成心法见 `.mesync/skills/_sync_wiki.skill.md`，这里只讲操作步骤。
 
 ## 你要做什么
 
@@ -12,7 +12,7 @@
 
 2. **探索并生成/更新文档**
 
-   按 `rules/_sync_wiki.rule.md` 的结构和要求，用 `glob`/`read`/`grep` 探索项目，再生成对应 md 文档。
+   按 `.mesync/rules/_sync_wiki.rule.md` 的结构和要求，用 `glob`/`read`/`grep` 探索项目，再生成对应 md 文档。
 
 3. **写盘并同步**
 
