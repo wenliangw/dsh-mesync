@@ -78,11 +78,6 @@ export function ensureInitSkillFile(projectRoot: string): void {
   ensureTemplateFile(projectRoot, INIT_SKILL_FILE, 'skills/_init_wiki.skill.md')
 }
 
-/** 读取 wiki 初始化/维护任务描述（自然语言描述主 agent 该做什么，直接注入） */
-export function loadInitSkill(projectRoot: string): string {
-  return loadTemplate(projectRoot, INIT_SKILL_FILE, 'skills/_init_wiki.skill.md')
-}
-
 /** 确保同频记忆维护策略描述文件存在 */
 export function ensureMaintainMemorySkillFile(projectRoot: string): void {
   ensureTemplateFile(projectRoot, MAINTAIN_MEMORY_SKILL_FILE, 'skills/_sync_strategy.skill.md')

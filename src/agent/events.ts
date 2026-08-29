@@ -9,7 +9,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { initDB, closeDB } from '../db/index.js'
-import { ensureRulesFile, ensureSkillFile, ensureInitSkillFile, ensureMaintainMemorySkillFile, ensureRecordDecisionRuleFile, ensureRecordDecisionSkillFile, ensureTasteSkillFile, loadInitSkill, loadMaintainMemorySkill } from '../wiki/index.js'
+import { ensureRulesFile, ensureSkillFile, ensureInitSkillFile, ensureMaintainMemorySkillFile, ensureRecordDecisionRuleFile, ensureRecordDecisionSkillFile, ensureTasteSkillFile, loadMaintainMemorySkill } from '../wiki/index.js'
 import { buildResonanceContext, buildTurnContext } from './context.js'
 import { setCurrentProjectRoot } from './tools.js'
 import type { Config } from '../config/index.js'
@@ -51,14 +51,15 @@ export function registerEvents(ctx: Context, config: Config): void {
     ensureRecordDecisionSkillFile(projectRoot)
     ensureTasteSkillFile(projectRoot)
 
-    // 注入 mesync wiki 维护指引：直接读 _init_wiki.skill.md 文件内容注入。
-    // 该文件用自然语言描述了主 agent 该做什么（判断首次/增量、按规则探索生成、
-    // 完成后调 mesync_sync_wiki），代码不做任何语义拼装，零硬编码指令。
+    // 注入 mesync 总纲（_sync_strategy.skill.md）：描述 mesync 是什么、wiki/品味/决策三者关系、
+    // 各内容的「何时做、如何做」以及设计原则。它是唯一的顶层注入 skill，
+    // 其余规则/心法文件（_init_wiki / _sync_wiki / _sync_decision / _sync_taste 等）
+    // 都通过总纲里的引用，由主 agent 需要时自行 read，不做顶层注入（避免 token 膨胀）。
     if (config.autoExtract) {
       ctx.systemPrompt.section({
-        name: 'mesync-wiki-guide',
+        name: 'mesync-memory-guide',
         order: 140,
-        text: () => loadInitSkill(projectRoot),
+        text: () => loadMaintainMemorySkill(projectRoot),
       })
     }
 
@@ -72,16 +73,6 @@ export function registerEvents(ctx: Context, config: Config): void {
         includeWiki: true,
       }),
     })
-
-    // 注入同频记忆维护策略（决策链/品味的读写时机，自然语言，来自 _maintain_memory.skill.md）。
-    // 与上面「数据展示」分开：数据是 buildResonanceContext 展示，策略是文件描述、让主 agent 自行识别执行。
-    if (config.autoExtract) {
-      ctx.systemPrompt.section({
-        name: 'mesync-memory-guide',
-        order: 145,
-        text: () => loadMaintainMemorySkill(projectRoot),
-      })
-    }
   })
 
   // ---- pre-step：注入即时上下文（任务匹配的决策）----
