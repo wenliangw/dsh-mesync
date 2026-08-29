@@ -18,7 +18,9 @@ mesync 是运行在 DeepSeek Harness (dsh) 里的项目级记忆插件。它的�
 
 ### ① 开发：按记忆写代码
 
-开发时主动参考 Wiki（架构、模块）和品味，产出与项目已有的结构、风格一致。
+开发功能时，主动参考 Wiki（架构、模块）和品味，产出与项目已有的结构、风格一致。
+
+> ⚠️ **前置条件**：如果项目还没有 Wiki（首次进入），先完成 Wiki 初始化，再开始开发（见下文「何时做」）。不要跳过初始化直接写代码。
 
 ### ② 决策：拉取历史，选择匹配的方案
 
@@ -31,13 +33,29 @@ mesync 是运行在 DeepSeek Harness (dsh) 里的项目级记忆插件。它的�
 
   核心：**「加深印象」不是调权重，而是延伸决策链**——每次否定都说明场景有差异，差异要用更多决策节点记录。
 
-## 何时做、如何做
+## 何时做、如何做（重要：遵循时序）
 
-**首次进入项目时**，先读 `skills/_init_wiki.skill.md` 完成 Wiki 初始化（已存在则跳过，只增量更新）。
+### 首次进入项目：必须先生成 Wiki，再开始开发
+
+**硬性要求**：如果你发现项目还没有 Wiki（`.mesync/overview.md` 不存在），那么在你开始处理用户的任何开发任务之前，**必须**先读 `skills/_init_wiki.skill.md` 并完成 Wiki 初始化（探索项目、生成 `.mesync/` 下的认知文档、调用 `mesync_sync_wiki` 同步索引）。
+
+- **不得跳过**：不能因为用户已经给了具体开发任务，就先去做开发、把 Wiki 放后面。顺序永远是「先初始化 Wiki → 再开发」。
+- **已生成则跳过**：如果 `.mesync/overview.md` 已存在，说明已初始化过了，这一步骤跳过，直接开始任务。
+- **为什么必须先做**：没有 Wiki，你就不了解项目的架构、模块、约束，直接开发会写出不符合项目现状的代码。先建立认知，再动手，才是正确的顺序。
+
+### 任务开发过程中：持续维护记忆
+
+完成 Wiki 首次初始化后，在开发任务的**过程中**，还要按规则持续维护三块记忆：
+
+- **Wiki**：开发导致代码变更时，按 `rules/_sync_wiki.rule.md` 增量更新对应文档（新模块、架构变化、约束变化），并再次调用 `mesync_sync_wiki`。
+- **决策**：遇到有意义的取舍时，按 `skills/_sync_decision.skill.md` 用 `remember` 记录；用户否定时走「澄清→共识→更新」闭环。
+- **品味**：识别到用户偏好时，按 `skills/_sync_taste.skill.md` 写入 `tastes/` 分门别类的 md。
+
+这些维护是「顺手」做的，融在开发流程里，不是单独的任务。
 
 | 内容 | 何时做 | 详细规则 |
 |------|--------|----------|
-| Wiki | 首次探索生成；代码变更时增量更新 | `skills/_init_wiki.skill.md` + `rules/_sync_wiki.rule.md` + `skills/_sync_wiki.skill.md` |
+| Wiki | 首次必须先初始化；开发中代码变更时增量更新 | `skills/_init_wiki.skill.md` + `rules/_sync_wiki.rule.md` + `skills/_sync_wiki.skill.md` |
 | 品味 | 识别到用户偏好时，写入 `tastes/` 分门别类的 md | `skills/_sync_taste.skill.md` |
 | 决策 | 有意义的取舍发生时记录；用户否定时更新 | `skills/_sync_decision.skill.md` + `rules/_sync_decision.rule.md` |
 
