@@ -6,7 +6,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as url from 'node:url'
-import { SYNC_RULE_FILE, SYNC_SKILL_FILE, INIT_SKILL_FILE, MAINTAIN_MEMORY_SKILL_FILE } from './structure.js'
+import { SYNC_RULE_FILE, SYNC_SKILL_FILE, INIT_SKILL_FILE, MAINTAIN_MEMORY_SKILL_FILE, RECORD_DECISION_RULE_FILE, RECORD_DECISION_SKILL_FILE } from './structure.js'
 
 /** 内置默认模板的目录（src/templates/） */
 function templateDir(): string {
@@ -101,4 +101,24 @@ export function ensureMaintainMemorySkillFile(projectRoot: string): void {
 /** 读取同频记忆维护策略描述（决策链 + 品味的读写时机，自然语言） */
 export function loadMaintainMemorySkill(projectRoot: string): string {
   return loadTemplate(projectRoot, MAINTAIN_MEMORY_SKILL_FILE, 'skills/_sync_strategy.skill.md')
+}
+
+/** 确保决策记录规则文件存在 */
+export function ensureRecordDecisionRuleFile(projectRoot: string): void {
+  ensureTemplateFile(projectRoot, RECORD_DECISION_RULE_FILE, 'rules/_sync_decision.rule.md')
+}
+
+/** 读取决策记录规则（什么算决策、字段规范、因果链关联） */
+export function loadRecordDecisionRule(projectRoot: string): string {
+  return loadTemplate(projectRoot, RECORD_DECISION_RULE_FILE, 'rules/_sync_decision.rule.md')
+}
+
+/** 确保决策记录心法文件存在 */
+export function ensureRecordDecisionSkillFile(projectRoot: string): void {
+  ensureTemplateFile(projectRoot, RECORD_DECISION_SKILL_FILE, 'skills/_sync_decision.skill.md')
+}
+
+/** 读取决策记录心法（怎么识别信号、怎么高质量记录） */
+export function loadRecordDecisionSkill(projectRoot: string): string {
+  return loadTemplate(projectRoot, RECORD_DECISION_SKILL_FILE, 'skills/_sync_decision.skill.md')
 }

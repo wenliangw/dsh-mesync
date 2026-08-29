@@ -25,6 +25,12 @@ export const INIT_SKILL_FILE = '.mesync/skills/_init_wiki.skill.md'
 /** 同频记忆（决策链 + 品味）维护策略描述文件 */
 export const MAINTAIN_MEMORY_SKILL_FILE = '.mesync/skills/_sync_strategy.skill.md'
 
+/** 决策记录规则文件（什么算决策、字段规范、因果链关联） */
+export const RECORD_DECISION_RULE_FILE = '.mesync/rules/_sync_decision.rule.md'
+
+/** 决策记录心法文件（怎么识别信号、怎么高质量记录） */
+export const RECORD_DECISION_SKILL_FILE = '.mesync/skills/_sync_decision.skill.md'
+
 /** 判断一个相对路径是否是 wiki 文档（.mesync/ 下的 .md 文件） */
 export function isWikiDoc(relPath: string): boolean {
   return (
