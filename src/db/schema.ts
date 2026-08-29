@@ -21,33 +21,6 @@ CREATE INDEX IF NOT EXISTS idx_decisions_created ON decisions(created_at);
 CREATE INDEX IF NOT EXISTS idx_decisions_caused_by ON decisions(caused_by);
 CREATE INDEX IF NOT EXISTS idx_decisions_outcome ON decisions(outcome);
 
-CREATE TABLE IF NOT EXISTS taste_signals (
-  id            TEXT PRIMARY KEY,
-  signal        TEXT NOT NULL,
-  weight        REAL NOT NULL DEFAULT 0.0,
-  examples      TEXT NOT NULL DEFAULT '[]',
-  updated_at    TEXT NOT NULL
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_taste_signal ON taste_signals(signal);
-
-CREATE TABLE IF NOT EXISTS taste_manual (
-  id             TEXT PRIMARY KEY,
-  content        TEXT NOT NULL,
-  parsed_signals TEXT NOT NULL DEFAULT '[]',
-  created_at     TEXT NOT NULL,
-  updated_at     TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS anti_patterns (
-  id             TEXT PRIMARY KEY,
-  pattern        TEXT NOT NULL,
-  context        TEXT,
-  from_decisions  TEXT NOT NULL DEFAULT '[]',
-  from_manual    TEXT,
-  updated_at     TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS wiki_pages (
   path       TEXT PRIMARY KEY,
   git_commit TEXT,

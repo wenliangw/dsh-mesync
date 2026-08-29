@@ -5,8 +5,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import {
-  getTasteProfile,
-  getAntiPatterns,
   getRecentDecisions,
   searchDecisions,
 } from '../db/index.js'
@@ -15,7 +13,6 @@ import type { DecisionNode } from '../db/index.js'
 /** 注入选项 */
 export interface InjectOptions {
   maxDecisions?: number
-  maxTasteSignals?: number
   includeWiki?: boolean
   taskQuery?: string
 }
@@ -24,9 +21,23 @@ export interface InjectOptions {
  * 读取 overview.md 速览内容（若存在）。
  * overview.md 是 LLM 生成的「项目简介 + 各模块索引」。
  */
-export function readOverview(projectRoot: string): string | null {
+function readOverview(projectRoot: string): string | null {
   try {
     const p = path.join(projectRoot, '.mesync', 'overview.md')
+    if (!fs.existsSync(p)) return null
+    return fs.readFileSync(p, 'utf-8')
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 读取品味速览（tastes/overview.md，若存在）。
+ * 品味已从 sqlite 迁移到 tastes/ 下的 md 文件（分门别类），overview.md 是速览索引。
+ */
+function readTasteOverview(projectRoot: string): string | null {
+  try {
+    const p = path.join(projectRoot, '.mesync', 'tastes', 'overview.md')
     if (!fs.existsSync(p)) return null
     return fs.readFileSync(p, 'utf-8')
   } catch {
@@ -38,7 +49,7 @@ export function readOverview(projectRoot: string): string | null {
  * 生成完整的同频记忆上下文（session-start 用）。
  */
 export function buildResonanceContext(projectRoot: string, opts: InjectOptions = {}): string {
-  const { maxDecisions = 5, maxTasteSignals = 5, includeWiki = true, taskQuery } = opts
+  const { maxDecisions = 5, includeWiki = true, taskQuery } = opts
 
   const sections: string[] = []
 
@@ -51,22 +62,10 @@ export function buildResonanceContext(projectRoot: string, opts: InjectOptions =
     }
   }
 
-  // 2. 品味和反模式
-  const tasteProfile = getTasteProfile()
-  const antiPatterns = getAntiPatterns()
-  if (tasteProfile.length > 0 || antiPatterns.length > 0) {
-    sections.push('## 🎨 Project Taste Profile')
-    if (tasteProfile.length > 0) {
-      for (const t of tasteProfile.slice(0, maxTasteSignals)) {
-        sections.push(`- **${t.signal}** (weight: ${t.weight.toFixed(1)})`)
-      }
-    }
-    if (antiPatterns.length > 0) {
-      sections.push('### Anti-Patterns (avoid these)')
-      for (const a of antiPatterns) {
-        sections.push(`- **${a.pattern}**: ${a.context || ''}`)
-      }
-    }
+  // 2. 品味（tastes/overview.md 速览）
+  const tasteOverview = readTasteOverview(projectRoot)
+  if (tasteOverview && tasteOverview.trim()) {
+    sections.push('## 🎨 Project Taste\n' + tasteOverview.trim())
     sections.push('')
   }
 

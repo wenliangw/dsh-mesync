@@ -3,11 +3,13 @@
 //
 // 模块划分：
 // - config/   配置（name / Config schema / inject）
-// - wiki/     项目认知（LLM 自动生成/维护 .mesync/ 下的 md 文档）
-// - decisions/ 因果链（决策节点）
-// - tastes/   品味信号
-// - db/       SQLite 数据层（.mesync/db/resonance.db）
-// - agent/     dsh 能力调用（LLM、事件、工具、上下文注入）
+// - wiki/     规则/心法模板管理（rules/ + skills/ 下的 md 文件）
+// - db/       SQLite 数据层（decisions 决策链 + wiki 索引）
+// - agent/    dsh 能力调用（事件、工具、上下文注入）
+//
+// 存储架构：
+// - wiki / tastes 详细内容 → .mesync/ 下的 md 文档（主 agent 惰性生成/维护）
+// - decisions + 因果关系 → SQLite（决策因子）
 
 import type { Context } from '@deepseek-ai/cordis'
 
@@ -19,7 +21,7 @@ export { name, Config, inject }
 // ---- 插件入口 ----
 
 export function apply(ctx: Context, config: Config) {
-  // 注册 Agent 工具（recall / remember / taste_add / reality）
+  // 注册 Agent 工具（recall / remember / reality / mesync_sync_wiki）
   registerTools(ctx)
 
   // 注册事件监听（session-start / pre-step / turn-stopping）

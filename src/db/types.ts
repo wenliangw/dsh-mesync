@@ -27,38 +27,6 @@ export interface TasteSignalRef {
   context: string
 }
 
-// ---- 品味（Tastes）----
-
-export interface TasteSignal {
-  id: string
-  signal: string
-  weight: number
-  examples: string[] // DecisionNode id 列表
-  updated_at: string
-}
-
-export interface ManualTaste {
-  id: string
-  content: string
-  parsed_signals: ParsedSignal[]
-  created_at: string
-  updated_at: string
-}
-
-export interface ParsedSignal {
-  signal: string
-  context: string
-}
-
-export interface AntiPattern {
-  id: string
-  pattern: string
-  context: string | null
-  from_decisions: string[]
-  from_manual: string | null
-  updated_at: string
-}
-
 // ---- Wiki 元数据 ----
 
 /** Wiki 文档的索引记录（.mesync/wiki/ 下的每个 md 文档对应一行） */

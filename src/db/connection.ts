@@ -24,7 +24,7 @@ const dbCache = new Map<string, DbEntry>()
 let currentRoot: string | null = null
 
 /** 计算默认 db 文件路径：<workspace>/.mesync/db/resonance.db */
-export function defaultDbPath(projectRoot: string): string {
+function defaultDbPath(projectRoot: string): string {
   return path.join(projectRoot, '.mesync', 'db', 'resonance.db')
 }
 

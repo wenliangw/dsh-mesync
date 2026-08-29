@@ -1,7 +1,8 @@
 // agent/tools — 注册 mesync 的 Agent 工具
-// recall / remember / taste_add / reality
+// recall / remember / reality / mesync_sync_wiki
 //
-// 注意：reality 工具读 wiki 的 overview.md（而非旧 SQLite react 快照）。
+// 注意：品味（taste）不再存 sqlite，改为 tastes/ 下的 md 文件（由主 agent 用
+// 原生 write 工具读写）。sqlite 只存 decisions（决策链 + taste_signals 因果关联）。
 // 通过模块级 currentProjectRoot 感知当前 workspace（由 events 在 session-start 设置）。
 
 import * as fs from 'node:fs'
@@ -10,11 +11,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import {
   searchDecisions,
-  getTasteProfile,
-  getAntiPatterns,
   insertDecision,
-  upsertTasteSignal,
-  updateManualTaste,
   syncWikiFromFiles,
   listWikiPages,
 } from '../db/index.js'
@@ -33,48 +30,32 @@ export function registerTools(ctx: Context): void {
   ctx.tools.register(defineTool({
     name: 'recall',
     description:
-      'Search the project resonance memory for related decisions, taste signals, and context. ' +
-      'Use this when you need to understand why something was done a certain way.',
+      'Search the project resonance memory for related decisions and their rationale. ' +
+      'Use this when you need to understand why something was done a certain way, or ' +
+      'before making a new decision to find a matching historical decision.',
     parameters: {
       query: { type: 'string', required: true, description: 'What to search for — keywords or concepts.' },
-      mode: { type: 'string', description: '"decisions" (default), "taste", or "all".' },
     },
     output: {
       schema: { type: 'string' },
       render: (_args: any, value: any) => [{ type: 'text', text: value }],
     },
-    async execute(args: { query: string; mode?: string }, _exec: any) {
-      const mode = args.mode || 'all'
-      const parts: string[] = []
+    async execute(args: { query: string }, _exec: any) {
+      const decisions = searchDecisions(args.query)
+      if (decisions.length === 0) return 'No related decisions found.'
 
-      if (mode === 'decisions' || mode === 'all') {
-        const decisions = searchDecisions(args.query)
-        if (decisions.length > 0) {
-          parts.push('## Related Decisions')
-          for (const d of decisions) {
-            parts.push(`- **${d.decision}** (${d.outcome})`)
-            parts.push(`  Rationale: ${d.rationale}`)
-            if (d.alternatives?.length) {
-              parts.push(`  Alternatives: ${d.alternatives.map(a => `${a.option} (${a.why_not})`).join(', ')}`)
-            }
-          }
+      const parts = ['## Related Decisions']
+      for (const d of decisions) {
+        parts.push(`- **${d.decision}** (${d.outcome})`)
+        parts.push(`  Rationale: ${d.rationale}`)
+        if (d.alternatives?.length) {
+          parts.push(`  Alternatives: ${d.alternatives.map(a => `${a.option} (${a.why_not})`).join(', ')}`)
+        }
+        if (d.taste_signals?.length) {
+          parts.push(`  Taste signals: ${d.taste_signals.map(t => t.signal).join(', ')}`)
         }
       }
-      if (mode === 'taste' || mode === 'all') {
-        const taste = getTasteProfile()
-        if (taste.length > 0) {
-          parts.push('## Taste Signals')
-          for (const t of taste) parts.push(`- **${t.signal}** (weight: ${t.weight.toFixed(1)})`)
-        }
-      }
-      if (mode === 'all') {
-        const anti = getAntiPatterns()
-        if (anti.length > 0) {
-          parts.push('## Anti-Patterns')
-          for (const a of anti) parts.push(`- ${a.pattern}: ${a.context || ''}`)
-        }
-      }
-      return parts.join('\n\n') || 'No results found.'
+      return parts.join('\n')
     },
   }))
 
@@ -92,6 +73,7 @@ export function registerTools(ctx: Context): void {
       taste_signals: { type: 'string', description: 'JSON array of {signal, context}.' },
       outcome: { type: 'string', description: '"adopted" (default) / "reverted" / "refined" / "pending".' },
       caused_by: { type: 'string', description: 'ID of the decision that caused this one.' },
+      supersedes: { type: 'string', description: 'ID of the previous decision this one replaces/overrides.' },
     },
     output: {
       schema: { type: 'string' },
@@ -105,6 +87,7 @@ export function registerTools(ctx: Context): void {
       taste_signals?: string
       outcome?: string
       caused_by?: string
+      supersedes?: string
     }, _exec: any) {
       let alts: Alternative[] = []
       let tastes: TasteSignalRef[] = []
@@ -123,38 +106,13 @@ export function registerTools(ctx: Context): void {
         evidence: null,
         outcome: (args.outcome as any) || 'adopted',
         caused_by: args.caused_by || null,
-        supersedes: null,
+        supersedes: args.supersedes || null,
         alternatives: alts,
         taste_signals: tastes,
       }
       insertDecision(node)
-      for (const ts of tastes) upsertTasteSignal(ts.signal, 0.5, node.id)
 
       return `✅ Decision recorded: **${node.decision}** (${node.id})`
-    },
-  }))
-
-  // ---- taste_add — 手动添加品味信号 ----
-  ctx.tools.register(defineTool({
-    name: 'taste_add',
-    description: 'Add a taste preference to the project (code style, architecture, quality standards).',
-    parameters: {
-      signal: { type: 'string', required: true, description: 'Taste signal, e.g. "prefer-explicit-over-implicit".' },
-      context: { type: 'string', description: 'Context or example.' },
-      weight: { type: 'number', description: 'Importance 0-1 (default 0.5).' },
-    },
-    output: {
-      schema: { type: 'string' },
-      render: (_args: any, value: any) => [{ type: 'text', text: value }],
-    },
-    async execute(args: { signal: string; context?: string; weight?: number }, _exec: any) {
-      const weight = args.weight || 0.5
-      const placeholderId = `manual_${crypto.randomUUID()}`
-      upsertTasteSignal(args.signal, weight, placeholderId)
-      if (args.context) {
-        updateManualTaste(`[${args.signal}] ${args.context}`, [{ signal: args.signal, context: args.context }])
-      }
-      return `✅ Taste signal updated: **${args.signal}** (weight: ${weight.toFixed(1)})`
     },
   }))
 

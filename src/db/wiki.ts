@@ -24,19 +24,6 @@ export function listWikiPages(): WikiPage[] {
   return d.prepare('SELECT * FROM wiki_pages ORDER BY path').all() as WikiPage[]
 }
 
-/** 查询单个 wiki 文档索引 */
-export function getWikiPage(path: string): WikiPage | null {
-  const d = getDB()
-  return (d.prepare('SELECT * FROM wiki_pages WHERE path = ?').get(path) as WikiPage) ?? null
-}
-
-/** 判断 workspace 是否已有 wiki 数据（用于决定首次全量 vs 复用） */
-export function hasWikiData(): boolean {
-  const d = getDB()
-  const row = d.prepare('SELECT COUNT(*) as c FROM wiki_pages').get() as any
-  return row.c > 0
-}
-
 /** 删除一个 wiki 文档的索引 */
 export function deleteWikiPage(path: string): void {
   const d = getDB()

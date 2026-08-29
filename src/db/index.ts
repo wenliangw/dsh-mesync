@@ -3,6 +3,5 @@
 export * from './types.js'
 export * from './connection.js'
 export * from './decisions.js'
-export * from './taste.js'
 export * from './wiki.js'
 export { SCHEMA_SQL } from './schema.js'

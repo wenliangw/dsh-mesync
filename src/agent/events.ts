@@ -9,7 +9,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { initDB, closeDB } from '../db/index.js'
-import { ensureRulesFile, ensureSkillFile, ensureInitSkillFile, ensureMaintainMemorySkillFile, ensureRecordDecisionRuleFile, ensureRecordDecisionSkillFile, loadInitSkill, loadMaintainMemorySkill } from '../wiki/index.js'
+import { ensureRulesFile, ensureSkillFile, ensureInitSkillFile, ensureMaintainMemorySkillFile, ensureRecordDecisionRuleFile, ensureRecordDecisionSkillFile, ensureTasteSkillFile, loadInitSkill, loadMaintainMemorySkill } from '../wiki/index.js'
 import { buildResonanceContext, buildTurnContext } from './context.js'
 import { setCurrentProjectRoot } from './tools.js'
 import type { Config } from '../config/index.js'
@@ -49,6 +49,7 @@ export function registerEvents(ctx: Context, config: Config): void {
     ensureMaintainMemorySkillFile(projectRoot)
     ensureRecordDecisionRuleFile(projectRoot)
     ensureRecordDecisionSkillFile(projectRoot)
+    ensureTasteSkillFile(projectRoot)
 
     // 注入 mesync wiki 维护指引：直接读 _init_wiki.skill.md 文件内容注入。
     // 该文件用自然语言描述了主 agent 该做什么（判断首次/增量、按规则探索生成、

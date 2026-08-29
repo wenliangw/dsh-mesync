@@ -1,17 +1,5 @@
-// wiki/structure — wiki 目录结构定义
-// .mesync 下的 LLM Wiki 文件布局
-
-/** overview.md 的固定位置（相对 workspace 根） */
-export const OVERVIEW_PATH = '.mesync/overview.md'
-
-/** wiki/ 目录（相对 workspace 根） */
-export const WIKI_DIR = '.mesync/wiki'
-
-/** rules 目录 */
-export const RULES_DIR = '.mesync/rules'
-
-/** skills 目录 */
-export const SKILLS_DIR = '.mesync/skills'
+// wiki/structure — .mesync 目录结构定义
+// 定义 rules/、skills/ 下的模板文件路径。
 
 /** 默认的 wiki 同步规则文件 */
 export const SYNC_RULE_FILE = '.mesync/rules/_sync_wiki.rule.md'
@@ -31,10 +19,5 @@ export const RECORD_DECISION_RULE_FILE = '.mesync/rules/_sync_decision.rule.md'
 /** 决策记录心法文件（怎么识别信号、怎么高质量记录） */
 export const RECORD_DECISION_SKILL_FILE = '.mesync/skills/_sync_decision.skill.md'
 
-/** 判断一个相对路径是否是 wiki 文档（.mesync/ 下的 .md 文件） */
-export function isWikiDoc(relPath: string): boolean {
-  return (
-    relPath === OVERVIEW_PATH ||
-    (relPath.startsWith(WIKI_DIR + '/') && relPath.endsWith('.md'))
-  )
-}
+/** 品味维护心法文件（怎么识别品味、怎么写 tastes/*.md、怎么维护 overview） */
+export const TASTE_SKILL_FILE = '.mesync/skills/_sync_taste.skill.md'

@@ -16,30 +16,6 @@ export function insertDecision(node: DecisionNode): void {
   )
 }
 
-export function getDecisionChain(nodeId: string): DecisionNode[] {
-  const d = getDB()
-  const chain: DecisionNode[] = []
-
-  // 向上追溯 caused_by
-  let current: string | null = nodeId
-  while (current) {
-    const row = d.prepare('SELECT * FROM decisions WHERE id = ?').get(current) as any
-    if (!row) break
-    chain.unshift(rowToDecision(row))
-    current = row.caused_by
-  }
-
-  // 向下追溯：找到以当前节点为 caused_by 的节点
-  const children = d.prepare(
-    'SELECT * FROM decisions WHERE caused_by = ? ORDER BY created_at ASC'
-  ).all(nodeId) as any[]
-  for (const child of children) {
-    chain.push(rowToDecision(child))
-  }
-
-  return chain
-}
-
 export function searchDecisions(query: string, limit = 10): DecisionNode[] {
   const d = getDB()
   const like = `%${query}%`

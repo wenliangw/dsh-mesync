@@ -6,7 +6,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as url from 'node:url'
-import { SYNC_RULE_FILE, SYNC_SKILL_FILE, INIT_SKILL_FILE, MAINTAIN_MEMORY_SKILL_FILE, RECORD_DECISION_RULE_FILE, RECORD_DECISION_SKILL_FILE } from './structure.js'
+import { SYNC_RULE_FILE, SYNC_SKILL_FILE, INIT_SKILL_FILE, MAINTAIN_MEMORY_SKILL_FILE, RECORD_DECISION_RULE_FILE, RECORD_DECISION_SKILL_FILE, TASTE_SKILL_FILE } from './structure.js'
 
 /** 内置默认模板的目录（src/templates/） */
 function templateDir(): string {
@@ -68,19 +68,9 @@ export function ensureRulesFile(projectRoot: string): void {
   ensureTemplateFile(projectRoot, SYNC_RULE_FILE, 'rules/_sync_wiki.rule.md')
 }
 
-/** 读取 rules 文件内容 */
-export function loadSyncRules(projectRoot: string): string {
-  return loadTemplate(projectRoot, SYNC_RULE_FILE, 'rules/_sync_wiki.rule.md')
-}
-
 /** 确保 skill 文件存在 */
 export function ensureSkillFile(projectRoot: string): void {
   ensureTemplateFile(projectRoot, SYNC_SKILL_FILE, 'skills/_sync_wiki.skill.md')
-}
-
-/** 读取 skill 文件内容（强化 agent 工作认知，供 subagent 按 skill 执行） */
-export function loadSyncSkill(projectRoot: string): string {
-  return loadTemplate(projectRoot, SYNC_SKILL_FILE, 'skills/_sync_wiki.skill.md')
 }
 
 /** 确保 wiki 初始化/维护任务描述文件存在 */
@@ -108,17 +98,12 @@ export function ensureRecordDecisionRuleFile(projectRoot: string): void {
   ensureTemplateFile(projectRoot, RECORD_DECISION_RULE_FILE, 'rules/_sync_decision.rule.md')
 }
 
-/** 读取决策记录规则（什么算决策、字段规范、因果链关联） */
-export function loadRecordDecisionRule(projectRoot: string): string {
-  return loadTemplate(projectRoot, RECORD_DECISION_RULE_FILE, 'rules/_sync_decision.rule.md')
-}
-
 /** 确保决策记录心法文件存在 */
 export function ensureRecordDecisionSkillFile(projectRoot: string): void {
   ensureTemplateFile(projectRoot, RECORD_DECISION_SKILL_FILE, 'skills/_sync_decision.skill.md')
 }
 
-/** 读取决策记录心法（怎么识别信号、怎么高质量记录） */
-export function loadRecordDecisionSkill(projectRoot: string): string {
-  return loadTemplate(projectRoot, RECORD_DECISION_SKILL_FILE, 'skills/_sync_decision.skill.md')
+/** 确保品味维护心法文件存在 */
+export function ensureTasteSkillFile(projectRoot: string): void {
+  ensureTemplateFile(projectRoot, TASTE_SKILL_FILE, 'skills/_sync_taste.skill.md')
 }
