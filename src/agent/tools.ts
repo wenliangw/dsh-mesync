@@ -15,6 +15,8 @@ import {
   insertDecision,
   upsertTasteSignal,
   updateManualTaste,
+  syncWikiFromFiles,
+  listWikiPages,
 } from '../db/index.js'
 import type { DecisionNode, Alternative, TasteSignalRef } from '../db/index.js'
 
@@ -176,6 +178,31 @@ export function registerTools(ctx: Context): void {
         return 'No project overview yet. It will be generated automatically on the first session.'
       }
       return fs.readFileSync(overviewPath, 'utf-8')
+    },
+  }))
+
+  // ---- mesync_sync_wiki — 写完 wiki 文档后，同步进 sqlite 索引 ----
+  // 主 agent 按规则探索项目并 write 了 .mesync/ 下的 md 文档后，调用本工具
+  // 把文档扫描进 sqlite 的 wiki_pages 索引（供后续检索/增量判断用）。
+  ctx.tools.register(defineTool({
+    name: 'mesync_sync_wiki',
+    description:
+      'Sync the wiki documents you just wrote under .mesync/ into the resonance index. ' +
+      'Call this AFTER you have finished writing .mesync/overview.md and/or .mesync/wiki/*.md ' +
+      'so the resonance memory knows which documents exist.',
+    parameters: {},
+    output: {
+      schema: { type: 'string' },
+      render: (_args: any, value: any) => [{ type: 'text', text: value }],
+    },
+    async execute(_args: {}, _exec: any) {
+      if (!currentProjectRoot) {
+        return 'No workspace selected. Start a session with a workspace first.'
+      }
+      const count = syncWikiFromFiles(currentProjectRoot, null, 'manual')
+      const pages = listWikiPages().map(p => p.path)
+      return `✅ Synced ${count} wiki document(s) to the resonance index.` +
+        (pages.length > 0 ? `\nIndexed paths:\n${pages.map(p => `- ${p}`).join('\n')}` : '')
     },
   }))
 }

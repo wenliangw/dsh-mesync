@@ -6,7 +6,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as url from 'node:url'
-import { SYNC_RULE_FILE, SYNC_SKILL_FILE } from './structure.js'
+import { SYNC_RULE_FILE, SYNC_SKILL_FILE, INIT_SKILL_FILE, MAINTAIN_MEMORY_SKILL_FILE } from './structure.js'
 
 /** 内置默认模板的目录（src/templates/） */
 function templateDir(): string {
@@ -81,4 +81,24 @@ export function ensureSkillFile(projectRoot: string): void {
 /** 读取 skill 文件内容（强化 agent 工作认知，供 subagent 按 skill 执行） */
 export function loadSyncSkill(projectRoot: string): string {
   return loadTemplate(projectRoot, SYNC_SKILL_FILE, 'skills/_sync_wiki.skill.md')
+}
+
+/** 确保 wiki 初始化/维护任务描述文件存在 */
+export function ensureInitSkillFile(projectRoot: string): void {
+  ensureTemplateFile(projectRoot, INIT_SKILL_FILE, 'skills/_init_wiki.skill.md')
+}
+
+/** 读取 wiki 初始化/维护任务描述（自然语言描述主 agent 该做什么，直接注入） */
+export function loadInitSkill(projectRoot: string): string {
+  return loadTemplate(projectRoot, INIT_SKILL_FILE, 'skills/_init_wiki.skill.md')
+}
+
+/** 确保同频记忆维护策略描述文件存在 */
+export function ensureMaintainMemorySkillFile(projectRoot: string): void {
+  ensureTemplateFile(projectRoot, MAINTAIN_MEMORY_SKILL_FILE, 'skills/_sync_strategy.skill.md')
+}
+
+/** 读取同频记忆维护策略描述（决策链 + 品味的读写时机，自然语言） */
+export function loadMaintainMemorySkill(projectRoot: string): string {
+  return loadTemplate(projectRoot, MAINTAIN_MEMORY_SKILL_FILE, 'skills/_sync_strategy.skill.md')
 }

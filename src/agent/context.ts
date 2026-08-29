@@ -86,12 +86,7 @@ export function buildResonanceContext(projectRoot: string, opts: InjectOptions =
 
   return `## 🔮 Resonance Memory — Project Context
 
-The following is the project's accumulated resonance memory — overview, tastes, and decisions. Align with the project's history and preferences.
-
-${sections.join('\n')}
----
-_Use the "recall" tool to search for more specific decisions. Use "remember" to record new decisions._
-`
+${sections.join('\n')}`
 }
 
 /**
