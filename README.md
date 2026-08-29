@@ -1,171 +1,77 @@
-# dsh-mesync
-
 <p align="center">
   <b>🔮 让 Agent 更了解你的项目</b>
+  <br/>
+  <sub>基于 <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a> 的项目级记忆插件</sub>
 </p>
 
-基于 DeepSeek Harness 的项目级记忆插件。自动记录架构决策、代码品味和项目现状，让每次对话都在同一个频道上。
+Mesync 持续维护三块记忆——**项目认知（Wiki）**、**品味（Taste）**、**决策（Decision）**——让 Agent 每次对话都了解项目的架构、你的代码偏好、以及过往决策的来龙去脉。
 
-## 快速开始
+---
 
-### 安装
+## ⚠️ 使用前请注意
+
+**Mesync 目前处于早期测试阶段**，请务必了解：
+
+- **会增加 Token 消耗**：每次对话都会注入记忆上下文，首次进入项目还会探索代码、生成认知文档，这些都会额外调用 LLM。
+- **建议先在小型项目中尝试**：暂不建议在大型项目中使用——全量探索大型代码库会带来较高的 Token 和时间开销。
+- 行为可能与预期有偏差，欢迎反馈问题。
+
+---
+
+## 如何使用
+
+### 1. 安装
 
 ```bash
 git clone https://github.com/wenliangw/dsh-mesync
 cd dsh-mesync
 npm install
+npm run build
 ```
 
-在 dsh 项目根目录创建 `mesync.yml`：
+### 2. 配置并加载
+
+在你的 dsh 补丁文件（如 `mesync.yml`）中插入 Mesync 插件：
 
 ```yaml
 - insert:
     - id: mesync
-      name: '/absolute/path/to/dsh-mesync/src/index.ts'
+      name: 'file:///absolute/path/to/dsh-mesync/lib/index.js'
       config:
-        dbPath: '.mesync/resonance.db'
-        autoExtract: true
-        tastePath: '.mesync/tastes/'
-        maxContextDecisions: 5
+        autoExtract: true        # 是否自动注入记忆上下文（默认 true）
+        maxContextDecisions: 5   # 注入上下文时最多带几条决策（默认 5）
 ```
 
 启动 dsh 时加载：
 
 ```bash
-pnpm dsh web --patch ./mesync.yml
+dsh web --patch ./mesync.yml
 ```
 
-### 配置
+### 3. 开始使用
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `dbPath` | string | `.mesync/resonance.db` | SQLite 数据库路径 |
-| `extractModel` | string | `""` | 提取用模型，空 = 复用当前模型 |
-| `autoExtract` | boolean | `true` | 是否自动提取决策 |
-| `tastePath` | string | `.mesync/tastes/` | 品味声明目录（支持目录批量加载） |
-| `maxContextDecisions` | number | `5` | 注入上下文时最多带几条决策 |
+打开 dsh 后，选择一个项目 workspace 新建会话即可。Mesync 会自动：
 
-## 工具
+- 首次进入项目时，探索代码并生成项目认知文档
+- 对话过程中，识别并记录决策、沉淀品味
+- 每次对话注入记忆上下文，让 Agent 保持「同频」
 
-Mesync 注册 4 个 Agent 工具：
+所有记忆文件都生成在项目根目录的 `.mesync/` 下，你可以直接查看或编辑。
 
-### recall — 搜索记忆
+---
 
-搜索历史决策、品味信号和反模式。
+## 三块记忆
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `query` | string | 是 | 搜索关键词 |
-| `mode` | string | 否 | `"decisions"` / `"taste"` / `"all"`（默认） |
+Mesync 维护三块记忆：**决策是枢纽**，连接「项目认知」与「品味」。
 
-### remember — 记录决策
+- **项目认知（Wiki）**：项目「是什么、怎么组织的」，存 `.mesync/` 下的 Markdown。
+- **品味（Taste）**：你「喜欢、偏好什么」，存 `.mesync/tastes/` 下的 Markdown。
+- **决策（Decision）**：项目「为什么这么定、取舍了什么」，存 SQLite，以因果链串联。
 
-手动标记一个决策节点。
+**三者不互斥**，一条信息可以同时属于多块。**记忆是可演化的**：决策会在你否定后追加新节点、延伸因果链（而非覆盖历史），品味会随你的偏好漂移，项目认知会随代码演进。
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `decision` | string | 是 | 做了什么决策 |
-| `rationale` | string | 是 | 为什么做这个决策 |
-| `trigger` | string | 否 | 触发场景 |
-| `alternatives` | string | 否 | 备选方案，JSON 数组 `[{"option":"...","why_not":"..."}]` |
-| `taste_signals` | string | 否 | 品味信号，JSON 数组 `[{"signal":"...","context":"..."}]` |
-| `outcome` | string | 否 | 结果：`"adopted"`（默认）/ `"reverted"` / `"refined"` / `"pending"` |
-| `caused_by` | string | 否 | 因果链上游节点 ID |
-
-### taste_add — 添加品味
-
-添加一条品味偏好。
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `signal` | string | 是 | 品味信号，如 `"prefer-explicit-over-implicit"` |
-| `context` | string | 否 | 具体说明或示例 |
-| `weight` | number | 否 | 重要性权重 0-1（默认 0.5） |
-
-### reality — 查看项目现状
-
-查看当前项目快照，无需参数。
-
-## 手动品味声明
-
-在 `.mesync/tastes/` 目录下创建 `.md` 文件，按主题分类：
-
-```
-.mesync/tastes/
-├── code-style.md      # 代码风格
-├── architecture.md    # 架构偏好
-└── patterns.md        # 模式偏好
-```
-
-文件格式（每行一条信号）：
-
-```markdown
-# 代码风格
-prefer-explicit-over-implicit: 不用 any/dyn 除非必要
-avoid-premature-generalization: 先做具体实现，验证后再抽象
-
-# 架构偏好
-favor-composition-over-inheritance: 优先组合而非继承
-```
-
-支持 `#` 注释行，空行忽略。也支持单文件 `.mesync/tastes.md`。
-
-## 工作流程
-
-```
-session 启动 → 注入同频记忆上下文（因果链摘要 + 品味画像 + 项目现状）
-    ↓
-每个 turn → 按任务匹配注入相关决策
-    ↓
-turn 结束 → 检测决策信号 → 自动提取决策节点 + 更新品味
-```
-
-## 决策信号
-
-自动提取在以下情况触发：
-
-- 用户显式说"记住"
-- 同一功能/文件反复调整 >= 3 次
-- 用户明确让 Agent 选择方案
-- 复杂需求涉及多模块
-
-## 成本
-
-自动提取会额外调用 LLM，预估开销占对话次数的 **5-15%**。可通过以下方式控制：
-
-- `autoExtract: false` 关闭自动提取，完全依赖手动 `remember`
-- `extractModel` 配置更便宜的模型专门做提取
-
-## 当前限制
-
-Phase 1 版本，已知限制：
-
-- TurnSummary 为简化版，决策信号检测主要依赖显式"记住"关键词
-- 完整的 session event 流收集将在后续版本实现
-- 暂无 Web UI 配置界面，通过 `cordis.yml` 配置
-
-## 项目结构
-
-```
-src/
-├── index.ts             # Cordis 插件入口
-├── db.ts                # SQLite 操作层
-├── tools.ts             # Agent 工具注册
-├── detector.ts          # 决策信号检测
-├── extractor.ts         # LLM 提取逻辑
-├── context-injector.ts  # 上下文格式化注入
-├── reality.ts           # 项目现状扫描
-├── decisions.ts         # 决策管理
-└── taste.ts             # 品味管理
-```
-
-## 存储
-
-所有数据在项目根目录 `.mesync/` 下：
-
-- `resonance.db` — SQLite 数据库
-- `tastes/` — 品味声明文件
+---
 
 ## License
 
-MIT
+[MIT](./LICENSE) © 2026 wenliangw

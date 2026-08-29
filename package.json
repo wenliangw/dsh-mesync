@@ -2,7 +2,7 @@
   "name": "mesync",
   "version": "0.1.0",
   "private": true,
-  "description": "同频记忆引擎 — 让 Agent 和你在同一个项目频率上共振。基于 DeepSeek Harness 的插件，实现项目级因果链、品味画像和项目现状的自动提取与注入。",
+  "description": "让 Agent 更了解你的项目",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -48,5 +48,6 @@
     "@types/node": "^22.0.0",
     "typescript": "^5.5.0",
     "vitest": "^2.1.9"
-  }
+  },
+  "license": "MIT"
 }
