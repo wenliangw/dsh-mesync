@@ -1,7 +1,6 @@
 {
-  "name": "mesync",
-  "version": "0.1.0",
-  "private": true,
+  "name": "dsh-mesync",
+  "version": "0.1.0-rc.0",
   "description": "让 Agent 更了解你的项目",
   "type": "module",
   "main": "lib/index.js",
@@ -17,7 +16,10 @@
     "lib/**/*.js",
     "lib/types/**/*.d.ts",
     "lib/templates/**/*.md",
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
