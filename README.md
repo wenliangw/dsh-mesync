@@ -12,7 +12,7 @@ Mesync 持续维护三块记忆——**项目认知（Wiki）**、**品味（Tas
 
 **Mesync 目前处于早期测试阶段**，请务必了解：
 
-- **会增加 Token 消耗**：每次对话都会注入记忆上下文，首次进入项目还会探索代码、生成认知文档，这些都会额外调用 LLM。
+- **会增加 Token 消耗**：每次对话都会注入记忆上下文；发起对话时会检查是否已有认知文档，若没有则会探索整个项目生成认知文档，这些都会额外调用 LLM。
 - **建议先在小型项目中尝试**：暂不建议在大型项目中使用——全量探索大型代码库会带来较高的 Token 和时间开销。
 - 行为可能与预期有偏差，欢迎反馈问题。
 
@@ -20,38 +20,39 @@ Mesync 持续维护三块记忆——**项目认知（Wiki）**、**品味（Tas
 
 ## 如何使用
 
-### 1. 安装
+### 1. 安装（通过 dsh 的 profile 机制）
+
+Mesync 已发布到 npm（目前为 rc 版本），通过 dsh 的 profile 机制安装即可，无需源码编译：
 
 ```bash
-git clone https://github.com/wenliangw/dsh-mesync
-cd dsh-mesync
-npm install
-npm run build
+dsh plugin --profile myprofile add dsh-mesync@rc
 ```
 
-### 2. 配置并加载
+> - `myprofile` 是 profile 名字（可自定义），即一套插件+配置的组合，存于 `~/.dsh/profiles/myprofile/`。
+> - 该命令会自动创建 profile、把 `dsh-mesync` 装进它的依赖，并自动加入 bundle 层，无需手写任何补丁。
+> - 目前最新为 `0.1.0-rc.3`，`@rc` 会跟随 rc 系列的最新版本。
 
-在你的 dsh 补丁文件（如 `mesync.yml`）中插入 Mesync 插件：
+### 2. 启动
+
+```bash
+dsh --profile myprofile
+```
+
+### （可选）自定义配置
+
+如需覆盖默认配置，在 profile 的补丁文件 `~/.dsh/profiles/myprofile/cordis.patch.yml` 中按 id 覆盖：
 
 ```yaml
-- insert:
-    - id: mesync
-      name: 'dsh-mesync'
-      config:
-        maxContextDecisions: 5   # 注入上下文时最多带几条决策（默认 5）
-```
-
-启动 dsh 时加载：
-
-```bash
-dsh web --patch ./mesync.yml
+- id: mesync
+  config:
+    maxContextDecisions: 10   # 注入上下文时最多带几条决策（默认 5）
 ```
 
 ### 3. 开始使用
 
 打开 dsh 后，选择一个项目 workspace 新建会话即可。Mesync 会自动：
 
-- 首次进入项目时，探索代码并生成项目认知文档
+- 发起对话时检查项目认知文档，若不存在则探索整个项目生成
 - 对话过程中，识别并记录决策、沉淀品味
 - 每次对话注入记忆上下文，让 Agent 保持「同频」
 
