@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 规范，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.1.0-rc.4] - 2026-08-31
+
+### 变更
+
+- README 改用 dsh profile 机制安装插件（`dsh plugin --profile <name> add dsh-mesync`），替代旧的手动 `--patch` 加载方式。
+- 修正认知文档生成时机描述：发起对话时检查是否已有认知文档，若不存在才探索整个项目生成，而非「首次进入项目时」触发。
+
 ## [0.1.0-rc.3] - 2026-08-30
 
 ### 新增

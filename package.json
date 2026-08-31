@@ -1,6 +1,6 @@
 {
   "name": "dsh-mesync",
-  "version": "0.1.0-rc.3",
+  "version": "0.1.0-rc.4",
   "description": "让 Agent 更了解你的项目",
   "type": "module",
   "main": "lib/index.js",
