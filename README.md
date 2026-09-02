@@ -22,25 +22,27 @@ Mesync 持续维护三块记忆——**项目认知（Wiki）**、**品味（Tas
 
 ### 1. 安装（通过 dsh 的 profile 机制）
 
-Mesync 已发布到 npm（目前为 rc 版本），通过 dsh 的 profile 机制安装即可，无需源码编译：
+Mesync 已发布到 npm，通过 dsh 的 profile 机制安装即可，无需源码编译：
 
 ```bash
-dsh plugin --profile myprofile add dsh-mesync@rc
+dsh plugin --profile web add dsh-mesync
 ```
 
-> - `myprofile` 是 profile 名字（可自定义），即一套插件+配置的组合，存于 `~/.dsh/profiles/myprofile/`。
+> - `web` 是 dsh 的**默认 profile** 名（dsh 自带的默认 profile）。
+> - profile 即一套插件+配置的组合，存于 `~/.dsh/profiles/<name>/`。你**也可以自定义 profile 名**，把 `web` 换成任意你想要的名称即可。
 > - 该命令会自动创建 profile、把 `dsh-mesync` 装进它的依赖，并自动加入 bundle 层，无需手写任何补丁。
-> - 目前最新为 `0.1.0-rc.3`，`@rc` 会跟随 rc 系列的最新版本。
 
 ### 2. 启动
 
 ```bash
-dsh --profile myprofile
+dsh --profile web
 ```
+
+> 如果你用的是自定义 profile 名，把 `web` 换成你的 profile 名即可。
 
 ### （可选）自定义配置
 
-如需覆盖默认配置，在 profile 的补丁文件 `~/.dsh/profiles/myprofile/cordis.patch.yml` 中按 id 覆盖：
+如需覆盖默认配置，在 profile 的补丁文件 `~/.dsh/profiles/web/cordis.patch.yml` 中按 id 覆盖：
 
 ```yaml
 - id: mesync

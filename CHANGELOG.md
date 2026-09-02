@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 规范，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.1.0] - 2026-09-02
+
+### 变更
+
+- 首个正式版本（由 rc 系列转正）。
+- README 安装步骤改用 dsh 默认 profile `web`，并说明 `web` 是 dsh 默认 profile、可自定义。
+
 ## [0.1.0-rc.4] - 2026-08-31
 
 ### 变更
